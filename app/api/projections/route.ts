@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const API_URL = 'https://partner-api.prizepicks.com/projections?per_page=1000'
+  const API_URL = 'https://partner-api.prizepicks.com/projections?per_page=1000&include=new_player,stat_average,league'
   
   try {
     const response = await fetch(API_URL)
