@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ApiResponse, Projection, NewPlayer, IncludedItem } from '@/types/props';
+import { ApiResponse, Projection, NewPlayer } from '@/types/props';
 
 export interface ProcessedProjectionData {
   filteredProjections: Projection[];

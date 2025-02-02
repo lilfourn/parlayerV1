@@ -1,5 +1,7 @@
+import { ApiResponse } from '@/types/props';
+import { updateProjectionCache, clearExpiredProjections } from './projection-cache';
+
 const CACHE_DURATION = 60 * 1000; // 1 minute
-let cachedData: any = null;
 let lastFetchTime = 0;
 
 const USER_AGENTS = [
@@ -45,47 +47,44 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3, ba
 export async function fetchProjections() {
     const now = Date.now();
     
-    // Return cached data if it's still fresh
-    if (cachedData && (now - lastFetchTime) < CACHE_DURATION) {
-        console.log('Returning cached data');
-        return cachedData;
-    }
+    // Clear expired projections (4 hours after start time)
+    clearExpiredProjections();
+    
+    // Fetch new data if cache is expired
+    if ((now - lastFetchTime) >= CACHE_DURATION) {
+        const headers = {
+            'User-Agent': getRandomUserAgent(),
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://app.prizepicks.com/',
+            'Origin': 'https://app.prizepicks.com',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        };
 
-    const headers = {
-        'User-Agent': getRandomUserAgent(),
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://app.prizepicks.com/',
-        'Origin': 'https://app.prizepicks.com',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-    };
-
-    try {
-        const response = await fetchWithRetry(
-            'https://partner-api.prizepicks.com/projections?per_page=100&include=new_player,stat_average,league,team',
-            { 
-                headers,
-                cache: 'no-store'
-            }
-        );
-
-        const data = await response.json();
-        
-        // Update cache
-        cachedData = data;
-        lastFetchTime = now;
-        
-        return data;
-    } catch (error) {
-        console.error('Error fetching projections:', error);
-        
-        // If we have cached data and there's an error, return the cached data
-        if (cachedData) {
-            console.log('Returning stale cached data after error');
-            return cachedData;
+        try {
+            const response = await fetchWithRetry(
+                'https://partner-api.prizepicks.com/projections?per_page=100&include=new_player,stat_average,league,team',
+                { 
+                    headers,
+                    cache: 'no-store'
+                }
+            );
+            
+            const data: ApiResponse = await response.json();
+            lastFetchTime = now;
+            
+            // Update cache and get data with line movement information
+            return updateProjectionCache(data);
+        } catch (error) {
+            console.error('Failed to fetch projections:', error);
+            throw error;
         }
-        
-        throw error;
     }
+    
+    // Return cached data with line movement information
+    return updateProjectionCache({
+        data: [],
+        included: []
+    });
 }

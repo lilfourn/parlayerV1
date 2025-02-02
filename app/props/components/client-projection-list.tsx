@@ -1,49 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ProjectionDisplay } from './components/projection-display';
-import { updateProjectionCache, getCachedProjections } from './api/projection-cache';
-import { type ProjectionWithAttributes, type ApiResponse } from '@/types/props';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ProjectionDisplay } from './projection-display';
+import type { ProjectionWithAttributes, ApiResponse } from '@/types/props';
 
-export function ProjectionList({ apiResponse }: { apiResponse: ApiResponse }) {
+interface ClientProjectionListProps {
+  initialData: ApiResponse;
+  refreshInterval?: number;
+}
+
+export function ClientProjectionList({ initialData, refreshInterval = 30000 }: ClientProjectionListProps) {
   const [projectionData, setProjectionData] = useState<ProjectionWithAttributes[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function processData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        let processedResponse: ApiResponse;
-        if (apiResponse?.data) {
-          // If we have new data, update the cache
-          processedResponse = await updateProjectionCache(apiResponse);
-        } else {
-          // Try to load from cache if no new data
-          const cached = await getCachedProjections();
-          if (!cached) {
-            setError('No projection data available');
-            return;
-          }
-          processedResponse = cached;
-        }
-
-        processProjections(processedResponse);
-      } catch (err) {
-        console.error('Error processing projections:', err);
-        setError('Failed to load projections');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    processData();
-  }, [apiResponse]);
-
-  // Process the API response into projection data
-  function processProjections(response: ApiResponse) {
+  const processProjections = useCallback((response: ApiResponse) => {
     try {
       // Create player map
       const playerMap = new Map();
@@ -68,13 +39,55 @@ export function ProjectionList({ apiResponse }: { apiResponse: ApiResponse }) {
       console.error('Error processing projection data:', err);
       throw new Error('Failed to process projection data');
     }
-  }
-  
+  }, []);
+
+  const fetchAndUpdateProjections = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/projections');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to fetch projections');
+      }
+
+      processProjections(result.data);
+    } catch (err) {
+      console.error('Error fetching projections:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load projections');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [processProjections]);
+
+  // Initial load using provided data
+  useEffect(() => {
+    if (initialData) {
+      processProjections(initialData);
+      setIsLoading(false);
+    } else {
+      fetchAndUpdateProjections();
+    }
+  }, [initialData, processProjections, fetchAndUpdateProjections]);
+
+  // Set up refresh interval
+  useEffect(() => {
+    if (!refreshInterval) return;
+
+    const intervalId = setInterval(fetchAndUpdateProjections, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, fetchAndUpdateProjections]);
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 px-4">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
           <span className="ml-3 text-gray-600">Loading projections...</span>
         </div>
       </div>

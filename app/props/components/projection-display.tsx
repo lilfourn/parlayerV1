@@ -1,147 +1,470 @@
 'use client';
 
-import { memo } from 'react';
-import { type ProjectionWithAttributes } from './projection-attributes';
-import { Switch } from "@/components/ui/switch";
+import { memo, useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type SortingState,
+  type ColumnDef,
+} from '@tanstack/react-table';
+import { type ProjectionWithAttributes } from '@/types/props';
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { PlayerAvatar } from './player-avatar';
+import { LeagueNav } from './league-nav';
+import { PlayerSearch } from './player-search';
+
+// League configuration with icons and display names
+const LEAGUE_CONFIG = [
+  // Basketball
+  { id: 'NBA', name: 'NBA', icon: '🏀' },
+  { id: 'NBA2H', name: 'NBA 2H', icon: '🏀' },
+  { id: 'NBA1H', name: 'NBA 1H', icon: '🏀' },
+  { id: 'NBA1Q', name: 'NBA 1Q', icon: '🏀' },
+  { id: 'NBA4Q', name: 'NBA 4Q', icon: '🏀' },
+  { id: 'CBB', name: 'CBB', icon: '🏀' },
+  { id: 'CBB1H', name: 'CBB 1H', icon: '🏀' },
+  { id: 'AUSNBL', name: 'NBL', icon: '🏀' },
+
+  // Football
+  { id: 'NFL', name: 'NFL', icon: '🏈' },
+  { id: 'NFL1H', name: 'NFL 1H', icon: '🏈' },
+  { id: 'NFL1Q', name: 'NFL 1Q', icon: '🏈' },
+
+  // Hockey
+  { id: 'NHL', name: 'NHL', icon: '🏒' },
+
+  // Soccer
+  { id: 'SOCCER', name: 'SOCCER', icon: '⚽' },
+
+  // Golf
+  { id: 'PGA', name: 'PGA', icon: '⛳' },
+  { id: 'TGL', name: 'TGL', icon: '⛳' },
+  { id: 'EUROGOLF', name: 'EURO', icon: '⛳' },
+
+  // Tennis
+  { id: 'TENNIS', name: 'TENNIS', icon: '🎾' },
+
+  // Baseball
+  { id: 'MLBSZN', name: 'MLB', icon: '⚾' },
+
+  // Esports
+  { id: 'CS2', name: 'CS2', icon: '🎮' },
+  { id: 'VAL', name: 'VALORANT', icon: '🎮' },
+  { id: 'LoL', name: 'LoL', icon: '🎮' },
+  { id: 'Dota2', name: 'DOTA 2', icon: '🎮' },
+  { id: 'COD', name: 'COD', icon: '🎮' },
+  { id: 'RL', name: 'RL', icon: '🎮' },
+  { id: 'R6', name: 'R6', icon: '🎮' },
+
+  // Combat Sports
+  { id: 'BOXING', name: 'BOXING', icon: '🥊' },
+
+  // Racing
+  { id: 'APEX', name: 'APEX', icon: '🏎️' },
+
+  // Special Events
+  { id: 'SPECIALS', name: 'SPECIALS', icon: '🎯' }
+];
 
 interface ProjectionDisplayProps {
   projectionData: ProjectionWithAttributes[];
-  showNext24Hours: boolean;
-  onToggleTimeFilter: (checked: boolean) => void;
 }
 
-// Memoized row component to prevent unnecessary re-renders
-const ProjectionRow = memo(({ item }: { item: ProjectionWithAttributes }) => {
-  const { projection, player, stats } = item;
+// Helper function to sanitize player data
+function sanitizePlayerData(player: ProjectionWithAttributes['player']) {
   if (!player) return null;
+  
+  return {
+    ...player,
+    attributes: {
+      ...player.attributes,
+      image_url: player.attributes.image_url || '/placeholder-avatar.png',
+    },
+  };
+}
 
-  return (
-    <tr key={projection.id} className="border-b hover:bg-gray-50">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          {player.attributes.image_url && (
-            <img 
-              src={player.attributes.image_url} 
-              alt={player.attributes.display_name}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          )}
-          <div>
-            <div className="font-medium">
-              {player.attributes.display_name}
-            </div>
-            <div className="text-sm text-gray-600">
-              {player.attributes.position}
-            </div>
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <div className="text-sm">
-          <div>{player.attributes.league}</div>
-          {player.attributes.team && (
-            <div className="text-gray-600">{player.attributes.team}</div>
-          )}
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <div>
-          <div>{projection.attributes.stat_display_name}</div>
-          {stats && (
-            <div className="text-xs text-gray-600">
-              Avg: {stats.attributes.average.toFixed(1)} | 
-              Max: {stats.attributes.max_value} | 
-              Games: {stats.attributes.count}
-            </div>
-          )}
-        </div>
-      </td>
-      <td className="px-4 py-3 text-right font-medium">
-        {projection.attributes.line_score}
-      </td>
-      <td className="px-4 py-3">
-        <div className="text-sm">
-          <div>{projection.attributes.game_id}</div>
-          <div className="text-gray-600 capitalize">
-            {projection.attributes.status}
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-sm">
-        {new Date(projection.attributes.start_time).toLocaleString()}
-      </td>
-    </tr>
-  );
-});
+// Helper function to get stat types for a specific league
+function getLeagueStatTypes(projections: ProjectionWithAttributes[], league: string) {
+  const statTypes = new Set<string>();
+  
+  projections.forEach(({ projection, player }) => {
+    if (!projection || !player) return;
+    if (player.attributes.league !== league) return;
+    statTypes.add(projection.attributes.stat_type);
+  });
+  
+  return Array.from(statTypes).sort();
+}
 
-ProjectionRow.displayName = 'ProjectionRow';
+// Get a friendly display name for a stat type
+function getStatTypeDisplayName(statType: string): string {
+  const displayNames: Record<string, string> = {
+    // Basketball
+    'points': 'Points',
+    'rebounds': 'Rebounds',
+    'assists': 'Assists',
+    'threes': '3-Pointers Made',
+    'blocks': 'Blocks',
+    'steals': 'Steals',
+    'turnovers': 'Turnovers',
+    'fantasy_points': 'Fantasy Points',
+    // Football
+    'passing_yards': 'Passing Yards',
+    'rushing_yards': 'Rushing Yards',
+    'receiving_yards': 'Receiving Yards',
+    'touchdowns': 'Touchdowns',
+    'receptions': 'Receptions',
+    'interceptions': 'Interceptions',
+    'completions': 'Completions',
+    'attempts': 'Attempts',
+    // Hockey
+    'goals': 'Goals',
+    'assists_hockey': 'Assists',
+    'saves': 'Saves',
+    'shots_on_goal': 'Shots on Goal',
+    'points_hockey': 'Points',
+    // Golf
+    'birdies': 'Birdies',
+    'bogeys': 'Bogeys',
+    'pars': 'Pars',
+    'score': 'Score',
+  };
+  
+  return displayNames[statType] || statType;
+}
 
 export const ProjectionDisplay = memo(function ProjectionDisplay({ 
-  projectionData, 
-  showNext24Hours, 
-  onToggleTimeFilter 
+  projectionData,
 }: ProjectionDisplayProps) {
-  console.log('Rendering ProjectionDisplay with:', {
-    dataLength: projectionData?.length,
-    showNext24Hours
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [selectedLeague, setSelectedLeague] = useState<string>('NBA');
+  const [selectedStatType, setSelectedStatType] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Get all stat types for the selected league
+  const statTypes = useMemo(() => {
+    return getLeagueStatTypes(projectionData, selectedLeague);
+  }, [projectionData, selectedLeague]);
+
+  // Split filtering into search results and league/stat type filters
+  const searchResults = useMemo(() => {
+    if (!searchTerm) return projectionData;
+
+    const searchLower = searchTerm.toLowerCase();
+    return projectionData.filter(item => {
+      if (!item.player) return false;
+
+      // Search in player name, team, position, and league
+      const playerMatches = 
+        item.player.attributes.name.toLowerCase().includes(searchLower) ||
+        (item.player.attributes.team?.toLowerCase() || '').includes(searchLower) ||
+        (item.player.attributes.position?.toLowerCase() || '').includes(searchLower) ||
+        item.player.attributes.league.toLowerCase().includes(searchLower);
+
+      // Search in stat type and description
+      const statMatches = 
+        item.projection.attributes.stat_type.toLowerCase().includes(searchLower) ||
+        item.projection.attributes.description.toLowerCase().includes(searchLower);
+
+      // Search in line score
+      const lineScoreMatches = 
+        item.projection.attributes.line_score.toString().includes(searchTerm);
+
+      return playerMatches || statMatches || lineScoreMatches;
+    });
+  }, [projectionData, searchTerm]);
+
+  // Apply league and stat type filters only if there's no search term
+  const filteredData = useMemo(() => {
+    if (searchTerm) return searchResults;
+
+    return searchResults.filter(item => {
+      const matchesLeague = item.player?.attributes.league === selectedLeague;
+      const matchesStatType = !selectedStatType || item.projection.attributes.stat_type === selectedStatType;
+      return matchesLeague && matchesStatType;
+    });
+  }, [searchResults, selectedLeague, selectedStatType, searchTerm]);
+
+  // Set initial stat type when league changes
+  useEffect(() => {
+    const types = getLeagueStatTypes(projectionData, selectedLeague);
+    if (types.length > 0 && !types.includes(selectedStatType)) {
+      setSelectedStatType(types[0]);
+    }
+  }, [selectedLeague, projectionData, selectedStatType]);
+
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const columns = useMemo<ColumnDef<ProjectionWithAttributes>[]>(() => [
+    {
+      accessorKey: 'player',
+      header: 'Player',
+      cell: ({ row }) => {
+        const player = row.original.player?.attributes;
+        if (!player) return null;
+        
+        return (
+          <div className="flex items-center space-x-3">
+            <PlayerAvatar
+              name={player.name}
+              imageUrl={player.image_url || ''}
+              size={32}
+            />
+            <div>
+              <div className="font-medium">{player.name}</div>
+              <div className="text-sm text-gray-500">{player.team}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'projection.attributes.stat_type',
+      header: 'Stat Type',
+      cell: ({ row }) => {
+        const statType = row.original.projection?.attributes.stat_type;
+        return statType ? (
+          <div className="font-medium">{getStatTypeDisplayName(statType)}</div>
+        ) : null;
+      },
+    },
+    {
+      accessorKey: 'projection.attributes.line_score',
+      header: 'Line',
+      cell: ({ row }) => {
+        const projection = row.original.projection;
+        if (!projection?.attributes) return null;
+        
+        const { line_score, line_movement } = projection.attributes as {
+          line_score: number;
+          line_movement?: {
+            original: number;
+            current: number;
+            direction: 'up' | 'down';
+            difference: number;
+          };
+        };
+        
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{line_score}</div>
+            {line_movement && (
+              <div className={`
+                text-xs font-medium
+                ${line_movement.direction === 'up' ? 'text-green-600' : 'text-red-600'}
+              `}>
+                {line_movement.direction === 'up' ? '↑' : '↓'} {Math.abs(line_movement.difference).toFixed(1)}
+                <span className="text-gray-500 ml-1">
+                  from {line_movement.original}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'projection.attributes.start_time',
+      header: 'Start Time',
+      cell: ({ row }) => {
+        const startTime = row.original.projection?.attributes.start_time;
+        if (!startTime) return null;
+        
+        const date = new Date(startTime);
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        let dateDisplay;
+        if (date.toDateString() === today.toDateString()) {
+          dateDisplay = 'Today';
+        } else if (date.toDateString() === tomorrow.toDateString()) {
+          dateDisplay = 'Tomorrow';
+        } else {
+          dateDisplay = date.toLocaleDateString('en-US', { 
+            weekday: 'short',
+            month: 'short', 
+            day: 'numeric'
+          });
+        }
+        
+        const timeDisplay = date.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        
+        return (
+          <div className="space-y-0.5">
+            <div className="font-medium">{timeDisplay}</div>
+            <div className="text-sm text-gray-500">{dateDisplay}</div>
+          </div>
+        );
+      },
+      sortingFn: 'datetime',
+    },
+    {
+      accessorKey: 'projection.attributes.status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.original.projection?.attributes.status;
+        return (
+          <div className={`
+            inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            ${status === 'pre_game' ? 'bg-green-100 text-green-800' :
+              status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+              status === 'final' ? 'bg-gray-100 text-gray-800' :
+              'bg-yellow-100 text-yellow-800'}
+          `}>
+            {status === 'pre_game' ? 'Upcoming' :
+             status === 'in_progress' ? 'Live' :
+             status === 'final' ? 'Final' :
+             status}
+          </div>
+        );
+      },
+    },
+  ], []);
+
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
-  if (!projectionData || projectionData.length === 0) {
-    console.log('No projection data to display');
-    return (
-      <div className="p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Switch
-            id="next-24-hours"
-            checked={showNext24Hours}
-            onCheckedChange={onToggleTimeFilter}
-          />
-          <Label htmlFor="next-24-hours">Show only next 24 hours</Label>
-        </div>
-        <p className="text-gray-600">No projections found</p>
-      </div>
-    );
-  }
-
-  const validProjections = projectionData.filter(item => item.player !== null);
-  console.log('Valid projections with players:', validProjections.length);
-
   return (
-    <div className="p-6 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="next-24-hours"
-            checked={showNext24Hours}
-            onCheckedChange={onToggleTimeFilter}
+    <div className="space-y-4">
+      {/* Search Bar */}
+      <PlayerSearch 
+        projections={projectionData}
+        onSearch={handleSearch}
+      />
+
+      {/* League Navigation - Hide when searching */}
+      {!searchTerm && (
+        <>
+          <LeagueNav
+            leagues={LEAGUE_CONFIG}
+            selectedLeague={selectedLeague}
+            onLeagueSelect={setSelectedLeague}
           />
-          <Label htmlFor="next-24-hours">Show only next 24 hours</Label>
-        </div>
-        <div className="text-sm text-gray-600">
-          Total Projections: {validProjections.length}
-        </div>
+
+          {/* Stat Type Filter */}
+          <div className="flex items-center gap-2 mb-4">
+            <Label>Stat Type:</Label>
+            <select
+              value={selectedStatType}
+              onChange={(e) => setSelectedStatType(e.target.value)}
+              className="p-2 border rounded-md"
+            >
+              {Array.from(statTypes).map((type) => (
+                <option key={type} value={type}>
+                  {getStatTypeDisplayName(type)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
+
+      {/* Results Count */}
+      <div className="text-sm text-gray-600 mb-2">
+        Showing {filteredData.length} {filteredData.length === 1 ? 'projection' : 'projections'}
+        {searchTerm && (
+          <>
+            {' '}matching "{searchTerm}"
+            {filteredData.length > 0 && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="ml-2 text-primary hover:text-primary/80 underline"
+              >
+                Clear search
+              </button>
+            )}
+          </>
+        )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="px-4 py-2 text-left">Player</th>
-              <th className="px-4 py-2 text-left">League/Team</th>
-              <th className="px-4 py-2 text-left">Stat</th>
-              <th className="px-4 py-2 text-right">Line</th>
-              <th className="px-4 py-2 text-left">Game Info</th>
-              <th className="px-4 py-2 text-left">Start Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {validProjections.map((item) => (
-              <ProjectionRow key={item.projection.id} item={item} />
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead 
+                    key={header.id}
+                    className="whitespace-nowrap"
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    <div className="flex items-center gap-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      {header.column.getIsSorted() === "asc" ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : header.column.getIsSorted() === "desc" ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : null}
+                    </div>
+                  </TableHead>
+                ))}
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No projections found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 });
+
+ProjectionDisplay.displayName = 'ProjectionDisplay';
