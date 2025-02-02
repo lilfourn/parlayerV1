@@ -1,23 +1,26 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 import { ApiResponse } from '@/types/props';
 
 const CACHE_KEY = 'PROPS_PROJECTION_CACHE';
 const CACHE_EXPIRY = 4 * 60 * 60 * 1000; // 4 hours
 const API_URL = 'https://partner-api.prizepicks.com/projections?per_page=1000&include=new_player,stat_average,league';
 
+// In-memory cache for server
+let memoryCache: {
+  data: ApiResponse;
+  timestamp: number;
+} | null = null;
+
 async function loadCache(): Promise<ApiResponse | null> {
   try {
-    const cached = await kv.get(CACHE_KEY);
-    if (!cached) return null;
+    if (!memoryCache) return null;
 
-    const parsedCache = cached as { data: ApiResponse; timestamp: number };
-    if (Date.now() - parsedCache.timestamp > CACHE_EXPIRY) {
-      await kv.del(CACHE_KEY);
+    if (Date.now() - memoryCache.timestamp > CACHE_EXPIRY) {
+      memoryCache = null;
       return null;
     }
 
-    return parsedCache.data;
+    return memoryCache.data;
   } catch (error) {
     console.error('Error loading cache:', error);
     return null;
@@ -26,10 +29,10 @@ async function loadCache(): Promise<ApiResponse | null> {
 
 async function saveCache(data: ApiResponse) {
   try {
-    await kv.set(CACHE_KEY, {
+    memoryCache = {
       data,
       timestamp: Date.now(),
-    });
+    };
   } catch (error) {
     console.error('Error saving cache:', error);
   }
@@ -98,7 +101,7 @@ export async function GET() {
 // Clear cache endpoint
 export async function DELETE() {
   try {
-    await kv.del(CACHE_KEY);
+    memoryCache = null;
     return NextResponse.json({
       success: true,
       message: 'Cache cleared successfully'
@@ -110,6 +113,7 @@ export async function DELETE() {
       }
     });
   } catch (error) {
+    console.error('Error clearing cache:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

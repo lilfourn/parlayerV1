@@ -1,5 +1,5 @@
 import { ApiResponse } from '@/types/props';
-import { updateProjectionCache, clearExpiredProjections } from './projection-cache';
+import { updateProjectionCache, clearExpiredProjections, getCachedProjections } from './projection-cache';
 
 const CACHE_DURATION = 60 * 1000; // 1 minute
 let lastFetchTime = 0;
@@ -50,8 +50,11 @@ export async function fetchProjections() {
     // Clear expired projections (4 hours after start time)
     clearExpiredProjections();
     
-    // Fetch new data if cache is expired
-    if ((now - lastFetchTime) >= CACHE_DURATION) {
+    // Check if we have cached data
+    const cachedData = await getCachedProjections();
+    
+    // Fetch new data if cache is expired or empty
+    if (!cachedData || (now - lastFetchTime) >= CACHE_DURATION) {
         const headers = {
             'User-Agent': getRandomUserAgent(),
             'Accept': 'application/json',
@@ -78,13 +81,16 @@ export async function fetchProjections() {
             return updateProjectionCache(data);
         } catch (error) {
             console.error('Failed to fetch projections:', error);
+            // If fetch fails and we have cached data, return that instead
+            if (cachedData) {
+                console.log('Returning cached data after fetch failure');
+                return cachedData;
+            }
             throw error;
         }
     }
     
-    // Return cached data with line movement information
-    return updateProjectionCache({
-        data: [],
-        included: []
-    });
+    // Return cached data
+    console.log('Returning cached data within cache duration');
+    return cachedData;
 }

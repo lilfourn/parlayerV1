@@ -1,5 +1,4 @@
 import { ApiResponse, Projection } from '@/types/props';
-import { kv } from '@vercel/kv';
 
 // Extend the Projection type to include our cache-specific fields
 interface CacheProjectionAttributes {
@@ -48,17 +47,21 @@ interface CacheEntry {
 const CACHE_EXPIRY = 4 * 60 * 60 * 1000;
 const CACHE_KEY = 'PROPS_PROJECTION_CACHE';
 
-// Load cache from Redis
+// Load cache from localStorage
 async function loadCache(): Promise<CacheEntry | null> {
   try {
-    const cached = await kv.get(CACHE_KEY);
+    const cached = localStorage.getItem(CACHE_KEY);
+    console.log('Loading cache, current cached data:', cached ? 'Found' : 'Not found');
+    
     if (!cached) return null;
     
-    const parsedCache = cached as CacheEntry;
+    const parsedCache = JSON.parse(cached) as CacheEntry;
+    console.log('Parsed cache contains', parsedCache.data.length, 'items');
     
     // Validate cache timestamp
     if (Date.now() - parsedCache.lastFetchTime > CACHE_EXPIRY) {
-      await kv.del(CACHE_KEY);
+      console.log('Cache expired, clearing');
+      localStorage.removeItem(CACHE_KEY);
       return null;
     }
     
@@ -69,10 +72,12 @@ async function loadCache(): Promise<CacheEntry | null> {
   }
 }
 
-// Save cache to Redis
+// Save cache to localStorage
 async function saveCache(cache: CacheEntry) {
   try {
-    await kv.set(CACHE_KEY, cache);
+    console.log('Saving cache with', cache.data.length, 'items');
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    console.log('Cache saved successfully');
   } catch (error) {
     console.error('Error saving cache:', error);
   }
@@ -96,12 +101,16 @@ export async function clearExpiredProjections() {
 
     // If all projections are expired, clear the entire cache
     if (filteredData.length === 0) {
-      await kv.del(CACHE_KEY);
+      localStorage.removeItem(CACHE_KEY);
       requestCache = null;
     } else {
-      const newCache = { ...cache, data: filteredData };
-      await saveCache(newCache);
-      requestCache = newCache;
+      // Update cache with filtered data
+      const updatedCache: CacheEntry = {
+        ...cache,
+        data: filteredData,
+      };
+      await saveCache(updatedCache);
+      requestCache = updatedCache;
     }
   } catch (error) {
     console.error('Error clearing expired projections:', error);
@@ -116,98 +125,108 @@ function createCachedProjection(projection: Projection, originalLineScore: numbe
   };
 }
 
+// Helper function to compare projections and detect changes
+function compareProjections(newProjection: Projection, cachedProjection: CachedProjection): {
+  hasChanged: boolean;
+  changes: {
+    lineScore?: {
+      from: number;
+      to: number;
+      timestamp: number;
+    };
+  };
+} {
+  const changes: {
+    lineScore?: {
+      from: number;
+      to: number;
+      timestamp: number;
+    };
+  } = {};
+  
+  let hasChanged = false;
+  
+  // Check for line score changes
+  if (cachedProjection.attributes.line_score !== newProjection.attributes.line_score) {
+    hasChanged = true;
+    changes.lineScore = {
+      from: cachedProjection.attributes.line_score,
+      to: newProjection.attributes.line_score,
+      timestamp: Date.now()
+    };
+  }
+  
+  return { hasChanged, changes };
+}
+
 export async function updateProjectionCache(newData: ApiResponse): Promise<ApiResponse> {
-  const now = Date.now();
-  
-  // First, clear any expired projections
-  await clearExpiredProjections();
-  
   try {
-    const existingCache = await loadCache();
+    const cache = await loadCache();
+    const now = Date.now();
+
+    console.log('Updating cache with new data containing', newData.data.length, 'items');
     
-    if (!existingCache) {
-      // First time caching, store original line scores
-      const cachedData = newData.data.map(projection => 
-        createCachedProjection(projection, projection.attributes.line_score, now)
-      );
-      
-      const newCache = {
-        data: cachedData,
-        included: newData.included,
-        lastFetchTime: now,
-      };
-      
-      await saveCache(newCache);
-      requestCache = newCache;
-      return newData;
+    if (cache) {
+      console.log('Found existing cache with', cache.data.length, 'items');
+      // Compare new data with cached data and track line movements
+      newData.data = newData.data.map(projection => {
+        const cachedProjection = cache.data.find(p => p.id === projection.id);
+        
+        if (cachedProjection) {
+          const { hasChanged, changes } = compareProjections(projection, cachedProjection);
+          
+          if (hasChanged && changes.lineScore) {
+            console.log('Line score changed for projection', projection.id, 'from', changes.lineScore.from, 'to', changes.lineScore.to);
+            projection.attributes.line_movement = {
+              original: changes.lineScore.from,
+              current: changes.lineScore.to,
+              direction: changes.lineScore.to > changes.lineScore.from ? 'up' : 'down',
+              difference: Math.abs(changes.lineScore.to - changes.lineScore.from)
+            };
+          }
+        }
+        
+        return projection;
+      });
     }
 
-    // Update existing projections and track line score changes
-    const updatedData = newData.data.map(newProjection => {
-      const cachedProjection = existingCache.data.find(p => p.id === newProjection.id);
-      
-      if (!cachedProjection) {
-        // New projection, store its original line score
-        const cachedData = createCachedProjection(newProjection, newProjection.attributes.line_score, now);
-        existingCache.data.push(cachedData);
-        return newProjection;
-      }
-
-      // Compare line scores and add trend information
-      const currentLine = newProjection.attributes.line_score;
-      const originalLine = cachedProjection.originalLineScore;
-      
-      if (currentLine !== originalLine) {
-        // Add line movement information to the projection
-        return {
-          ...newProjection,
-          attributes: {
-            ...newProjection.attributes,
-            line_movement: {
-              original: originalLine,
-              current: currentLine,
-              direction: currentLine > originalLine ? 'up' : 'down',
-              difference: currentLine - originalLine,
-            },
-          },
-        };
-      }
-
-      return newProjection;
-    });
-
-    // Update the cache with new data
-    const newCache = {
-      data: updatedData.map(projection => {
-        const originalLineScore = (existingCache.data.find(p => p.id === projection.id)?.originalLineScore) 
-          ?? projection.attributes.line_score;
-        return createCachedProjection(projection, originalLineScore, now);
-      }),
+    // Update cache with new data
+    const updatedCache: CacheEntry = {
+      data: newData.data.map(projection => ({
+        ...projection,
+        originalLineScore: projection.attributes.line_score,
+        lastUpdated: now
+      })),
       included: newData.included,
-      lastFetchTime: now,
+      lastFetchTime: now
     };
-    
-    await saveCache(newCache);
-    requestCache = newCache;
 
-    return {
-      ...newData,
-      data: updatedData,
-    };
-  } catch (error) {
-    console.error('Error updating projection cache:', error);
+    await saveCache(updatedCache);
+    requestCache = updatedCache;
+
     return newData;
+  } catch (error) {
+    console.error('Error updating cache:', error);
+    throw error;
   }
 }
 
 // Get cached data
 export async function getCachedProjections(): Promise<ApiResponse | null> {
-  if (requestCache) return requestCache;
+  console.log('Getting cached projections');
+  if (requestCache) {
+    console.log('Found request cache with', requestCache.data.length, 'items');
+    return requestCache;
+  }
   
   await clearExpiredProjections();
   const cache = await loadCache();
-  if (!cache) return null;
+  if (!cache) {
+    console.log('No cache found');
+    return null;
+  }
   
+  console.log('Loaded cache with', cache.data.length, 'items');
   requestCache = cache;
   return {
     data: cache.data,
@@ -218,7 +237,7 @@ export async function getCachedProjections(): Promise<ApiResponse | null> {
 // Clear the entire cache
 export async function clearCache() {
   try {
-    await kv.del(CACHE_KEY);
+    localStorage.removeItem(CACHE_KEY);
     requestCache = null;
   } catch (error) {
     console.error('Error clearing cache:', error);

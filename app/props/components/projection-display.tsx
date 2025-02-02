@@ -246,35 +246,39 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       header: 'Line',
       cell: ({ row }) => {
         const projection = row.original.projection;
-        if (!projection?.attributes) return null;
-        
-        const { line_score, line_movement } = projection.attributes as {
-          line_score: number;
-          line_movement?: {
-            original: number;
-            current: number;
-            direction: 'up' | 'down';
-            difference: number;
-          };
-        };
-        
+        const lineScore = projection.attributes.line_score;
+        const lineMovement = projection.attributes.line_movement;
+
         return (
-          <div className="space-y-1">
-            <div className="font-medium">{line_score}</div>
-            {line_movement && (
-              <div className={`
-                text-xs font-medium
-                ${line_movement.direction === 'up' ? 'text-green-600' : 'text-red-600'}
-              `}>
-                {line_movement.direction === 'up' ? '↑' : '↓'} {Math.abs(line_movement.difference).toFixed(1)}
-                <span className="text-gray-500 ml-1">
-                  from {line_movement.original}
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{lineScore}</span>
+            {lineMovement && (
+              <div 
+                className={`flex items-center gap-1 text-sm px-2 py-0.5 rounded ${
+                  lineMovement.direction === 'up' 
+                    ? 'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
+                    : 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
+                }`}
+              >
+                <span className="flex items-center">
+                  {lineMovement.direction === 'up' ? (
+                    <ChevronUp className="w-3 h-3" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3" />
+                  )}
+                </span>
+                <span className="text-xs font-medium">
+                  {lineMovement.difference.toFixed(1)}
+                </span>
+                <span className="text-xs opacity-75">
+                  from {lineMovement.original}
                 </span>
               </div>
             )}
           </div>
         );
       },
+      sortingFn: 'datetime',
     },
     {
       accessorKey: 'projection.attributes.start_time',

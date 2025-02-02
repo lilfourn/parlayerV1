@@ -70,6 +70,12 @@ export interface Projection {
         stat_type: string;
         stat_display_name: string;
         game_id: string;
+        line_movement?: {
+            original: number;
+            current: number;
+            direction: 'up' | 'down';
+            difference: number;
+        };
     };
     relationships: {
         duration: {
