@@ -1,4 +1,4 @@
-import { Home, PersonStanding, Trophy } from "lucide-react";
+import { Home, PersonStanding, Percent, Trophy } from "lucide-react";
 import React from 'react';
 
 import {
@@ -23,6 +23,11 @@ const items = [
     title: "Props",
     url: "/props",
     icon: PersonStanding,
+  },
+  {
+    title: "Odds",
+    url: "/odds",
+    icon: Percent,
   },
   {
     title: "Results",
