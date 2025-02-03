@@ -10,6 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { OddsComparison } from './odds-comparison';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Clock } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -29,6 +32,7 @@ export const EventsDisplay = memo(function EventsDisplay({ sportKey }: EventsDis
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -36,6 +40,7 @@ export const EventsDisplay = memo(function EventsDisplay({ sportKey }: EventsDis
       
       setLoading(true);
       setError(null);
+      setSelectedEvent(null);
       
       try {
         const response = await fetch(`/api/events?sport=${sportKey}`);
@@ -53,47 +58,78 @@ export const EventsDisplay = memo(function EventsDisplay({ sportKey }: EventsDis
   }, [sportKey]);
 
   if (!sportKey) return null;
-  if (loading) return <div>Loading events...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="animate-pulse">Loading events...</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (events.length === 0) return <div>No events found for this sport</div>;
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit'
+      })
+    };
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-lg font-bold">Events for {events[0]?.sport_title || sportKey}</Label>
-      </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4">
+        {events.map((event) => {
+          const { date, time } = formatEventDate(event.commence_time);
+          const isSelected = selectedEvent?.id === event.id;
+          
+          return (
+            <Card 
+              key={event.id}
+              className={`transition-all duration-200 ${
+                isSelected ? 'ring-2 ring-blue-500' : 'hover:border-blue-200'
+              }`}
+            >
+              <CardHeader className="cursor-pointer" onClick={() => setSelectedEvent(isSelected ? null : event)}>
+                <div className="flex flex-col space-y-2 md:flex-row md:justify-between md:items-center">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      {event.away_team} @ {event.home_team}
+                    </CardTitle>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>{date}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{time}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        event.completed ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {event.completed ? 'Completed' : 'Upcoming'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
 
-      {events.length === 0 ? (
-        <div>No events found for this sport</div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Teams</TableHead>
-              <TableHead>Start Time</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {events.map((event) => (
-              <TableRow key={event.id}>
-                <TableCell className="font-medium">
-                  {event.away_team} @ {event.home_team}
-                </TableCell>
-                <TableCell>
-                  {new Date(event.commence_time).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-sm ${
-                    event.completed ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {event.completed ? 'Completed' : 'Upcoming'}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+              {isSelected && (
+                <CardContent className="pt-4 pb-6">
+                  <OddsComparison 
+                    eventId={event.id}
+                    sportKey={sportKey}
+                    homeTeam={event.home_team}
+                    awayTeam={event.away_team}
+                  />
+                </CardContent>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 });
