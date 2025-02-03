@@ -33,6 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { PlayerInsights } from './player-insights';
 
 interface OddsData {
   id: string;
@@ -236,7 +237,7 @@ export const OddsInsights = memo(function OddsInsights({ sportKey }: OddsInsight
               <CollapsibleContent>
                 <CardContent>
                   <Tabs defaultValue="moneyline" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                       <div className="flex items-center">
                         <TabsTrigger value="moneyline">Moneyline</TabsTrigger>
                         <TooltipProvider>
@@ -282,82 +283,101 @@ export const OddsInsights = memo(function OddsInsights({ sportKey }: OddsInsight
                           </Tooltip>
                         </TooltipProvider>
                       </div>
+                      <div className="flex items-center">
+                        <TabsTrigger value="players">Players</TabsTrigger>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="ml-1 inline-flex items-center justify-center">
+                                <Info className="h-4 w-4" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View player statistics and props</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </TabsList>
 
-                    {(['moneyline', 'spreads', 'totals'] as const).map(marketType => (
+                    {(['moneyline', 'spreads', 'totals', 'players'] as const).map(marketType => (
                       <TabsContent key={marketType} value={marketType}>
-                        <div className="mt-4">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Sportsbook</TableHead>
-                                {insights[marketType][0]?.outcomes.map((outcome: any) => (
-                                  <TableHead key={outcome.name} className="text-right">
-                                    {outcome.name}
-                                    {outcome.point !== undefined && ` (${outcome.point > 0 ? '+' : ''}${outcome.point})`}
-                                  </TableHead>
-                                ))}
-                                <TableHead className="text-right">Market Efficiency</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {insights[marketType].map((insight: any, idx: number) => {
-                                const marketEfficiency = insight.outcomes[0].marketEfficiency;
-                                const isEfficient = Math.abs(100 - marketEfficiency) < 2;
+                        {marketType === 'players' ? (
+                          <PlayerInsights sportKey={sportKey} eventId={event.id} />
+                        ) : (
+                          <div className="mt-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Sportsbook</TableHead>
+                                  {insights[marketType][0]?.outcomes.map((outcome: any) => (
+                                    <TableHead key={outcome.name} className="text-right">
+                                      {outcome.name}
+                                      {outcome.point !== undefined && ` (${outcome.point > 0 ? '+' : ''}${outcome.point})`}
+                                    </TableHead>
+                                  ))}
+                                  <TableHead className="text-right">Market Efficiency</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {insights[marketType].map((insight: any, idx: number) => {
+                                  const marketEfficiency = insight.outcomes[0].marketEfficiency;
+                                  const isEfficient = Math.abs(100 - marketEfficiency) < 2;
 
-                                return (
-                                  <TableRow key={idx}>
-                                    <TableCell className="font-medium">
-                                      {insight.bookmaker}
-                                    </TableCell>
-                                    {insight.outcomes.map((outcome: any) => (
-                                      <TableCell key={outcome.name} className="text-right">
-                                        <div className="flex flex-col items-end">
-                                          <span className="font-semibold">
-                                            {formatOddsAmerican(outcome.price)}
-                                          </span>
-                                          <span className="text-sm text-gray-500">
-                                            {outcome.impliedProbability.toFixed(1)}%
-                                          </span>
-                                        </div>
+                                  return (
+                                    <TableRow key={idx}>
+                                      <TableCell className="font-medium">
+                                        {insight.bookmaker}
                                       </TableCell>
-                                    ))}
-                                    <TableCell className="text-right">
-                                      <Badge 
-                                        variant={isEfficient ? "default" : "destructive"}
-                                        className="ml-2"
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          {isEfficient ? (
-                                            <TrendingUp className="h-3 w-3" />
-                                          ) : (
-                                            <TrendingDown className="h-3 w-3" />
-                                          )}
-                                          {marketEfficiency.toFixed(1)}%
-                                        </div>
-                                      </Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                                      {insight.outcomes.map((outcome: any) => (
+                                        <TableCell key={outcome.name} className="text-right">
+                                          <div className="flex flex-col items-end">
+                                            <span className="font-semibold">
+                                              {formatOddsAmerican(outcome.price)}
+                                            </span>
+                                            <span className="text-sm text-gray-500">
+                                              {outcome.impliedProbability.toFixed(1)}%
+                                            </span>
+                                          </div>
+                                        </TableCell>
+                                      ))}
+                                      <TableCell className="text-right">
+                                        <Badge 
+                                          variant={isEfficient ? "default" : "destructive"}
+                                          className="ml-2"
+                                        >
+                                          <div className="flex items-center gap-1">
+                                            {isEfficient ? (
+                                              <TrendingUp className="h-3 w-3" />
+                                            ) : (
+                                              <TrendingDown className="h-3 w-3" />
+                                            )}
+                                            {marketEfficiency.toFixed(1)}%
+                                          </div>
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
 
-                          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                            <h4 className="font-semibold mb-2 flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-blue-500" />
-                              Betting Insights
-                            </h4>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                              <li>• Market Efficiency: Shows how well-priced the market is. 100% indicates a perfectly efficient market.</li>
-                              <li>• Implied Probability: The likelihood of an outcome based on the odds.</li>
-                              <li>• American Odds: +150 means bet $100 to win $150, -150 means bet $150 to win $100.</li>
-                              {marketType === 'spreads' && (
-                                <li>• Spread numbers indicate the points added or subtracted from a team's final score.</li>
-                              )}
-                            </ul>
+                            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-blue-500" />
+                                Betting Insights
+                              </h4>
+                              <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• Market Efficiency: Shows how well-priced the market is. 100% indicates a perfectly efficient market.</li>
+                                <li>• Implied Probability: The likelihood of an outcome based on the odds.</li>
+                                <li>• American Odds: +150 means bet $100 to win $150, -150 means bet $150 to win $100.</li>
+                                {marketType === 'spreads' && (
+                                  <li>• Spread numbers indicate the points added or subtracted from a team's final score.</li>
+                                )}
+                              </ul>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </TabsContent>
                     ))}
                   </Tabs>
