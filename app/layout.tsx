@@ -1,5 +1,12 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Roboto_Mono } from 'next/font/google';
+import { cn } from '@/lib/utils';
+
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  variable: '--font-roboto-mono',
+});
 
 export const metadata: Metadata = {
   title: 'Parlayer',
@@ -12,9 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        {children}
+    <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
+      <body className={cn('min-h-screen bg-background font-mono antialiased')}>
+        <main className="relative flex min-h-screen flex-col">
+          {children}
+        </main>
       </body>
     </html>
   );
