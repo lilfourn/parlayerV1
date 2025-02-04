@@ -14,13 +14,10 @@ export const MARKETS_CONFIG: MarketsConfig = {
       'player_defensive_interceptions', 'player_field_goals', 'player_kicking_points',
       'player_pass_attempts', 'player_pass_completions', 'player_pass_interceptions',
       'player_pass_longest_completion', 'player_pass_rush_reception_tds',
-      'player_pass_rush_reception_yds', 'player_pass_tds', 'player_pass_yds',
-      'player_pass_yds_q1', 'player_pats', 'player_receptions', 'player_reception_longest',
+      'player_pass_rush_reception_yds', 'player_pass_tds', 'player_pass_yds', 'player_pats', 'player_receptions', 'player_reception_longest',
       'player_reception_tds', 'player_reception_yds', 'player_rush_attempts',
       'player_rush_longest', 'player_rush_reception_tds', 'player_rush_reception_yds',
-      'player_rush_tds', 'player_rush_yds', 'player_sacks', 'player_solo_tackles',
-      'player_tackles_assists', 'player_tds_over', 'player_1st_td', 'player_anytime_td',
-      'player_last_td'
+      'player_rush_tds', 'player_rush_yds', 'player_sacks', 'player_tds_over', 'player_anytime_td'
     ],
     alternate: [
       'player_field_goals_alternate', 'player_kicking_points_alternate',

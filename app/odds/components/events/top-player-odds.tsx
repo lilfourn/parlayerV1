@@ -305,6 +305,7 @@ export function TopPlayerOdds({ eventId, sportKey }: TopPlayerOddsProps) {
 
         // Sort by price (ascending) and get top 4 lowest odds
         const sortedOdds = allOdds
+          .filter(odd => odd.price > -200) // Filter out odds less than -200
           .sort((a, b) => a.price - b.price)
           .slice(0, 4);
 
