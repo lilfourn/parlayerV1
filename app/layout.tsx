@@ -20,8 +20,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
-      <body className={cn('min-h-screen bg-background font-mono antialiased')}>
-        <main className="relative flex min-h-screen flex-col">
+      <body className={cn('min-h-screen bg-background font-mono antialiased')} suppressHydrationWarning>
+        <main className="relative flex min-h-screen flex-col" suppressHydrationWarning>
           {children}
         </main>
       </body>

@@ -26,13 +26,15 @@ export function EventsList({ selectedSport }: EventsListProps) {
   const [loadingOdds, setLoadingOdds] = useState<{ [key: string]: boolean }>({});
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchEvents() {
+      if (!selectedSport) return;
+      
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/events${selectedSport ? `?sport=${selectedSport}` : ''}`);
+        const response = await fetch(`/api/events?sport=${selectedSport}`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
@@ -40,6 +42,7 @@ export function EventsList({ selectedSport }: EventsListProps) {
         setEvents(data);
       } catch (error) {
         console.error('Error fetching events:', error);
+        setEvents([]); 
       } finally {
         setIsLoading(false);
       }
@@ -47,6 +50,10 @@ export function EventsList({ selectedSport }: EventsListProps) {
 
     fetchEvents();
   }, [selectedSport]);
+
+  if (!selectedSport) {
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -59,7 +66,7 @@ export function EventsList({ selectedSport }: EventsListProps) {
   if (!events.length) {
     return (
       <Card className="p-8">
-        <p className="text-center text-gray-500">No events found{selectedSport ? ` for ${selectedSport}` : ''}.</p>
+        <p className="text-center text-gray-500">No events found for {selectedSport}.</p>
       </Card>
     );
   }
@@ -72,7 +79,6 @@ export function EventsList({ selectedSport }: EventsListProps) {
 
     setExpandedEventId(eventId);
 
-    // Only fetch if we don't have the odds data yet
     if (!oddsData[eventId]) {
       try {
         setLoadingOdds(prev => ({ ...prev, [eventId]: true }));

@@ -1,5 +1,5 @@
 'use client';
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SportsFilter } from './components/sports/sports-filter';
@@ -21,6 +21,15 @@ export default function Odds() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedSport = searchParams.get('sport');
+
+    // Add effect to set default sport
+    useEffect(() => {
+        if (!selectedSport) {
+            const params = new URLSearchParams(searchParams);
+            params.set('sport', 'basketball_nba');
+            router.push(`/odds?${params.toString()}`);
+        }
+    }, [selectedSport, searchParams, router]);
 
     const handleSportSelect = (sport: string) => {
         const params = new URLSearchParams(searchParams);

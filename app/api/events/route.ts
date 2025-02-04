@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const markets = 'h2h';
   const oddsFormat = 'american';
   const dateFormat = 'iso';
-
+  const sportsKey = 'upcoming'
   try {
     const response = await axios.get(`https://api.the-odds-api.com/v4/sports/${sport}/events`, {
       params: {
