@@ -1,8 +1,39 @@
-// app/api/eventOdds/route.ts
+// app/api/playerProps/route.ts
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { MARKETS_CONFIG } from '@/app/odds/constants/markets';
 
 const BASE_URL = 'https://api.the-odds-api.com/v4';
+
+function getMarketsForSport(sportKey: string): string {
+  // Extract the base sport from the key (e.g., 'basketball_nba' -> 'basketball_nba')
+  const sport = sportKey.includes('_') ? sportKey : 'soccer';
+  const config = MARKETS_CONFIG[sport];
+
+  if (!config) {
+    console.warn(`No market configuration found for sport: ${sport}`);
+    return '';
+  }
+
+  const markets: string[] = [];
+
+  // Add regular markets
+  if (config.regular) {
+    markets.push(...config.regular);
+  }
+
+  // Add alternate markets
+  if (config.alternate) {
+    markets.push(...config.alternate);
+  }
+
+  // Add other markets
+  if (config.other) {
+    markets.push(...config.other);
+  }
+
+  return markets.join(',');
+}
 
 export async function GET(request: Request) {
   try {
@@ -15,8 +46,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
     const sportKey = searchParams.get('sportKey');
+    const marketKey = searchParams.get('marketKey');
 
-    console.log('Fetching odds for:', { eventId, sportKey });
+    console.log('Fetching player props:', { eventId, sportKey, marketKey });
 
     if (!eventId || !sportKey) {
       console.error('Missing required parameters:', { eventId, sportKey });
@@ -26,7 +58,10 @@ export async function GET(request: Request) {
       }, { status: 400 });
     }
 
-    // Construct the URL exactly as in the working example
+    // Get markets for the specific sport or use the provided marketKey
+    const markets = marketKey || getMarketsForSport(sportKey);
+    console.log('Using markets:', { sportKey, marketKey, marketsCount: markets.split(',').length });
+
     const url = `${BASE_URL}/sports/${sportKey}/events/${eventId}/odds`;
     console.log('Requesting URL:', url);
 
@@ -35,26 +70,42 @@ export async function GET(request: Request) {
         apiKey,
         regions: 'us',
         oddsFormat: 'american',
-        markets: 'h2h'
+        markets
       }
     });
 
     if (!response.data) {
       console.warn('No data received from API:', { eventId, sportKey });
       return NextResponse.json({ 
-        error: 'No odds data available',
+        error: 'No player props available',
         details: { hasData: false }
       }, { status: 404 });
     }
 
+    // Transform the response to include player names from descriptions
+    const transformedData = {
+      ...response.data,
+      bookmakers: response.data.bookmakers?.map((bookmaker: any) => ({
+        ...bookmaker,
+        markets: bookmaker.markets?.map((market: any) => ({
+          ...market,
+          outcomes: market.outcomes?.map((outcome: any) => ({
+            ...outcome,
+            name: market.description || outcome.name, // Use description as player name if available
+          }))
+        }))
+      }))
+    };
+
     console.log('API Response:', {
-      bookmakers: response.data.bookmakers?.length || 0,
-      hasData: !!response.data
+      bookmakers: transformedData.bookmakers?.length || 0,
+      hasData: !!transformedData,
+      markets: markets.split(',').length
     });
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('Error fetching odds:', error);
+    console.error('Error fetching player props:', error);
     
     if (axios.isAxiosError(error)) {
       const status = error.response?.status || 500;

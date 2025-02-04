@@ -1,9 +1,11 @@
 'use client';
 
-import { memo, useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { EventOdds } from './event-odds';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarDays, Clock } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -12,126 +14,151 @@ interface Event {
   commence_time: string;
   home_team: string;
   away_team: string;
-  bookmakers: any[];
 }
 
 interface EventsListProps {
   selectedSport?: string;
 }
 
-export const EventsList = memo(function EventsList({ selectedSport }: EventsListProps) {
+export function EventsList({ selectedSport }: EventsListProps) {
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [oddsData, setOddsData] = useState<{ [key: string]: any }>({});
+  const [loadingOdds, setLoadingOdds] = useState<{ [key: string]: boolean }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchEvents = useCallback(async (sport: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(`/api/events?sport=${sport}`);
-      if (!response.ok) throw new Error('Failed to fetch events');
-      const data = await response.json();
-      setEvents(data);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch events');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (selectedSport) {
-      fetchEvents(selectedSport);
-    } else {
-      setEvents([]);
+    async function fetchEvents() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/events${selectedSport ? `?sport=${selectedSport}` : ''}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
+        }
+        const data = await response.json();
+        setEvents(data);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [selectedSport, fetchEvents]);
 
-  if (!selectedSport) {
-    return (
-      <Card className="p-8 text-center">
-        <h3 className="text-lg font-medium text-gray-600">
-          Select a sport to view available events
-        </h3>
-      </Card>
-    );
-  }
+    fetchEvents();
+  }, [selectedSport]);
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-[250px]" />
-              <div className="flex gap-4">
-                <Skeleton className="h-4 w-[100px]" />
-                <Skeleton className="h-4 w-[100px]" />
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="p-8 text-center">
-        <h3 className="text-lg font-medium text-red-600">
-          Error loading events
-        </h3>
-        <p className="mt-2 text-sm text-gray-600">{error}</p>
+      <Card className="p-8">
+        <Skeleton className="h-[200px] w-full" />
       </Card>
     );
   }
 
-  if (events.length === 0) {
+  if (!events.length) {
     return (
-      <Card className="p-8 text-center">
-        <h3 className="text-lg font-medium text-gray-600">
-          No events available for this sport
-        </h3>
-        <p className="mt-2 text-sm text-gray-500">
-          Check back later for upcoming events
-        </p>
+      <Card className="p-8">
+        <p className="text-center text-gray-500">No events found{selectedSport ? ` for ${selectedSport}` : ''}.</p>
       </Card>
     );
   }
+
+  const toggleEvent = async (eventId: string, sportKey: string) => {
+    if (expandedEventId === eventId) {
+      setExpandedEventId(null);
+      return;
+    }
+
+    setExpandedEventId(eventId);
+
+    // Only fetch if we don't have the odds data yet
+    if (!oddsData[eventId]) {
+      try {
+        setLoadingOdds(prev => ({ ...prev, [eventId]: true }));
+        setErrors(prev => ({ ...prev, [eventId]: '' }));
+
+        const response = await fetch(`/api/eventOdds?eventId=${eventId}&sportKey=${sportKey}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch odds');
+        }
+
+        setOddsData(prev => ({ ...prev, [eventId]: data }));
+      } catch (error) {
+        console.error('Error fetching odds:', error);
+        setErrors(prev => ({
+          ...prev,
+          [eventId]: error instanceof Error ? error.message : 'Failed to fetch odds'
+        }));
+      } finally {
+        setLoadingOdds(prev => ({ ...prev, [eventId]: false }));
+      }
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    };
+    return new Date(dateString).toLocaleString('en-US', options);
+  };
 
   return (
     <div className="space-y-4">
-      {events.map((event) => (
-        <Card key={event.id} className="p-4 hover:shadow-md transition-shadow">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">{event.sport_title}</h3>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <CalendarDays className="h-4 w-4" />
-                <span>
-                  {new Date(event.commence_time).toLocaleDateString()}
-                </span>
-                <Clock className="h-4 w-4 ml-2" />
-                <span>
-                  {new Date(event.commence_time).toLocaleTimeString()}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Home: {event.home_team}</p>
-                <p className="text-sm font-medium">Away: {event.away_team}</p>
-              </div>
-              {event.bookmakers && event.bookmakers.length > 0 && (
-                <div className="text-sm text-gray-500">
-                  {event.bookmakers.length} bookmaker{event.bookmakers.length !== 1 ? 's' : ''}
+      {events.map((event) => {
+        const isExpanded = expandedEventId === event.id;
+        const isLoading = loadingOdds[event.id];
+        const error = errors[event.id];
+        const currentOddsData = oddsData[event.id];
+
+        return (
+          <Card key={event.id} className="p-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-between font-normal"
+              onClick={() => toggleEvent(event.id, event.sport_key)}
+            >
+              <div className="flex flex-col items-start text-left">
+                <div className="font-semibold">
+                  {event.home_team} vs {event.away_team}
                 </div>
-              )}
-            </div>
-          </div>
-        </Card>
-      ))}
+                <div className="text-sm text-gray-500">
+                  {formatDate(event.commence_time)}
+                </div>
+              </div>
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+
+            {isLoading && (
+              <div className="mt-4 px-4">
+                <Skeleton className="h-[150px] w-full" />
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 px-4 text-center text-red-600">
+                {error}
+              </div>
+            )}
+
+            {!isLoading && !error && currentOddsData && (
+              <EventOdds
+                sportKey={event.sport_key}
+                event={event}
+                oddsData={currentOddsData}
+                isOpen={isExpanded}
+              />
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
-});
+}
