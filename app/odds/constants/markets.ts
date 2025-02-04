@@ -39,12 +39,11 @@ export const MARKETS_CONFIG: MarketsConfig = {
   basketball_nba: {
     regular: [
       'player_points', 'player_points_q1', 'player_rebounds', 'player_rebounds_q1',
-      'player_assists', 'player_assists_q1', 'player_threes', 'player_blocks',
+      'player_assists', 'player_threes', 'player_blocks',
       'player_steals', 'player_blocks_steals', 'player_turnovers',
       'player_points_rebounds_assists', 'player_points_rebounds', 'player_points_assists',
       'player_rebounds_assists', 'player_field_goals', 'player_frees_made',
-      'player_frees_attempts', 'player_first_basket', 'player_double_double',
-      'player_triple_double', 'player_method_of_first_basket'
+      'player_frees_attempts', 'player_first_basket',
     ],
     alternate: [
       'player_points_alternate', 'player_rebounds_alternate', 'player_assists_alternate',

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { EventOdds } from './event-odds';
+import { TopPlayerOdds } from './top-player-odds';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Event {
@@ -155,12 +156,20 @@ export function EventsList({ selectedSport }: EventsListProps) {
             )}
 
             {!isLoading && !error && currentOddsData && (
-              <EventOdds
-                sportKey={event.sport_key}
-                event={event}
-                oddsData={currentOddsData}
-                isOpen={isExpanded}
-              />
+              <div className="space-y-2">
+                <EventOdds
+                  sportKey={event.sport_key}
+                  event={event}
+                  oddsData={currentOddsData}
+                  isOpen={isExpanded}
+                />
+                {isExpanded && (
+                  <TopPlayerOdds
+                    eventId={event.id}
+                    sportKey={event.sport_key}
+                  />
+                )}
+              </div>
             )}
           </Card>
         );
