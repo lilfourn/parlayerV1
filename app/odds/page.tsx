@@ -1,15 +1,32 @@
 'use client';
-
-import React, { useState } from 'react';
+import React, { Suspense } from 'react';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SportsDisplay } from '../props/components/sports-display';
-import { OddsInsights } from './components/odds-insights';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, BookOpen } from 'lucide-react';
+import { SportsFilter } from './components/sports/sports-filter';
+import { EventsList } from './components/events/events-list';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { DollarSign } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 
-export default function OddsPage() {
-    const [selectedSport, setSelectedSport] = useState<string | null>(null);
+function EventsListFallback() {
+  return (
+    <Card className="p-8">
+      <Skeleton className="h-[200px] w-full" />
+    </Card>
+  );
+}
+
+export default function Odds() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const selectedSport = searchParams.get('sport');
+
+    const handleSportSelect = (sport: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('sport', sport);
+        router.push(`/odds?${params.toString()}`);
+    };
 
     return (
         <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -19,43 +36,21 @@ export default function OddsPage() {
                     <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
                         <div className="flex items-center h-14 px-4">
                             <SidebarTrigger />
-                            <div className="flex items-center gap-2 px-2">
-                                <Trophy className="h-5 w-5 text-blue-500" />
-                                <h1 className="text-xl font-semibold text-gray-900">Sports Odds</h1>
+                            <div className="ml-4 flex items-center space-x-4">
+                                <DollarSign className="h-5 w-5 text-blue-500" />
+                                <h1 className="text-lg font-semibold">Sports Odds</h1>
                             </div>
                         </div>
                     </div>
 
-                    <div className="transition-all duration-200 ease-in-out">
-                        <div className="container mx-auto p-4 lg:p-6 max-w-[1600px]">
-                            <div className="grid gap-6">
-                                <Card className="bg-white shadow-sm">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-center gap-2">
-                                            <BookOpen className="h-5 w-5 text-blue-500" />
-                                            <CardTitle className="text-lg font-semibold">Select Sport</CardTitle>
-                                        </div>
-                                        <CardDescription>
-                                            Choose a sport to view available events, odds comparisons, and betting insights
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <SportsDisplay 
-                                            onSportSelect={setSelectedSport}
-                                            selectedSport={selectedSport}
-                                        />
-                                    </CardContent>
-                                </Card>
-
-                                {selectedSport && (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 gap-6">
-                                            <OddsInsights sportKey={selectedSport} />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                    <div className="p-4 space-y-4">
+                        <SportsFilter 
+                            onSportSelect={handleSportSelect}
+                            selectedSport={selectedSport ?? undefined}
+                        />
+                        <Suspense fallback={<EventsListFallback />}>
+                            <EventsList selectedSport={selectedSport ?? undefined} />
+                        </Suspense>
                     </div>
                 </main>
             </SidebarProvider>

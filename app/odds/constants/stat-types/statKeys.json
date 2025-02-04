@@ -1,0 +1,200 @@
+{
+  "football": {
+    "regular": {
+      "player_defensive_interceptions": "Defensive Interceptions",
+      "player_field_goals": "Field Goals",
+      "player_kicking_points": "Kicking Points",
+      "player_pass_attempts": "Pass Attempts",
+      "player_pass_completions": "Pass Completions",
+      "player_pass_interceptions": "Pass Intercepts",
+      "player_pass_longest_completion": "Longest Pass Completion",
+      "player_pass_rush_reception_tds": "Pass + Rush + Reception Touchdowns",
+      "player_pass_rush_reception_yds": "Pass + Rush + Reception Yards",
+      "player_pass_tds": "Pass Touchdowns",
+      "player_pass_yds": "Pass Yards",
+      "player_pass_yds_q1": "1st Quarter Pass Yards",
+      "player_pats": "Points After Touchdown",
+      "player_receptions": "Receptions",
+      "player_reception_longest": "Longest Reception",
+      "player_reception_tds": "Reception Touchdowns",
+      "player_reception_yds": "Reception Yards",
+      "player_rush_attempts": "Rush Attempts",
+      "player_rush_longest": "Longest Rush",
+      "player_rush_reception_tds": "Rush + Reception Touchdowns",
+      "player_rush_reception_yds": "Rush + Reception Yards",
+      "player_rush_tds": "Rush Touchdowns",
+      "player_rush_yds": "Rush Yards",
+      "player_sacks": "Sacks",
+      "player_solo_tackles": "Solo Tackles",
+      "player_tackles_assists": "Tackles + Assists",
+      "player_tds_over": "Touchdowns",
+      "player_1st_td": "1st Touchdown Scorer",
+      "player_anytime_td": "Anytime Touchdown Scorer",
+      "player_last_td": "Last Touchdown Scorer"
+    },
+    "alternate": {
+      "player_field_goals_alternate": "Alternate Field Goals",
+      "player_kicking_points_alternate": "Alternate Kicking Points",
+      "player_pass_attempts_alternate": "Alternate Pass Attempts",
+      "player_pass_completions_alternate": "Alternate Pass Completions",
+      "player_pass_interceptions_alternate": "Alternate Pass Interceptions",
+      "player_pass_longest_completion_alternate": "Alternate Longest Pass Completion",
+      "player_pass_rush_reception_tds_alternate": "Alternate Pass + Rush + Reception Touchdowns",
+      "player_pass_rush_reception_yds_alternate": "Alternate Pass + Rush + Reception Yards",
+      "player_pass_tds_alternate": "Alternate Pass Touchdowns",
+      "player_pass_yds_alternate": "Alternate Pass Yards",
+      "player_pats_alternate": "Alternate Points After Touchdown",
+      "player_receptions_alternate": "Alternate Receptions",
+      "player_reception_longest_alternate": "Alternate Longest Reception",
+      "player_reception_tds_alternate": "Alternate Reception Touchdowns",
+      "player_reception_yds_alternate": "Alternate Reception Yards",
+      "player_rush_attempts_alternate": "Alternate Rush Attempts",
+      "player_rush_longest_alternate": "Alternate Longest Rush",
+      "player_rush_reception_tds_alternate": "Alternate Rush + Reception Touchdowns",
+      "player_rush_reception_yds_alternate": "Alternate Rush + Reception Yards",
+      "player_rush_tds_alternate": "Alternate Rush Touchdowns",
+      "player_rush_yds_alternate": "Alternate Rush Yards",
+      "player_sacks_alternate": "Alternate Sacks",
+      "player_solo_tackles_alternate": "Alternate Solo Tackles",
+      "player_tackles_assists_alternate": "Alternate Tackles + Assists"
+    }
+  },
+  "basketball": {
+    "regular": {
+      "player_points": "Points",
+      "player_points_q1": "1st Quarter Points",
+      "player_rebounds": "Rebounds",
+      "player_rebounds_q1": "1st Quarter Rebounds",
+      "player_assists": "Assists",
+      "player_assists_q1": "1st Quarter Assists",
+      "player_threes": "Threes",
+      "player_blocks": "Blocks",
+      "player_steals": "Steals",
+      "player_blocks_steals": "Blocks + Steals",
+      "player_turnovers": "Turnovers",
+      "player_points_rebounds_assists": "Points + Rebounds + Assists",
+      "player_points_rebounds": "Points + Rebounds",
+      "player_points_assists": "Points + Assists",
+      "player_rebounds_assists": "Rebounds + Assists",
+      "player_field_goals": "Field Goals",
+      "player_frees_made": "Frees made",
+      "player_frees_attempts": "Frees attempted",
+      "player_first_basket": "First Basket Scorer",
+      "player_double_double": "Double Double",
+      "player_triple_double": "Triple Double",
+      "player_method_of_first_basket": "Method of First Basket (Various)"
+    },
+    "alternate": {
+      "player_points_alternate": "Alternate Points",
+      "player_rebounds_alternate": "Alternate Rebounds",
+      "player_assists_alternate": "Alternate Assists",
+      "player_blocks_alternate": "Alternate Blocks",
+      "player_steals_alternate": "Alternate Steals",
+      "player_turnovers_alternate": "Alternate Turnovers",
+      "player_threes_alternate": "Alternate Threes",
+      "player_points_assists_alternate": "Alternate Points + Assists",
+      "player_points_rebounds_alternate": "Alternate Points + Rebounds",
+      "player_rebounds_assists_alternate": "Alternate Rebounds + Assists",
+      "player_points_rebounds_assists_alternate": "Alternate Points + Rebounds + Assists"
+    }
+  },
+  "baseball": {
+    "regular": {
+      "batter_home_runs": "Batter home runs",
+      "batter_first_home_run": "Batter first home run",
+      "batter_hits": "Batter hits",
+      "batter_total_bases": "Batter total bases",
+      "batter_rbis": "Batter RBIs",
+      "batter_runs_scored": "Batter runs scored",
+      "batter_hits_runs_rbis": "Batter hits + runs + RBIs",
+      "batter_singles": "Batter singles",
+      "batter_doubles": "Batter doubles",
+      "batter_triples": "Batter triples",
+      "batter_walks": "Batter walks",
+      "batter_strikeouts": "Batter strikeouts",
+      "batter_stolen_bases": "Batter stolen bases",
+      "pitcher_strikeouts": "Pitcher strikeouts",
+      "pitcher_record_a_win": "Pitcher to record a win",
+      "pitcher_hits_allowed": "Pitcher hits allowed",
+      "pitcher_walks": "Pitcher walks",
+      "pitcher_earned_runs": "Pitcher earned runs",
+      "pitcher_outs": "Pitcher outs"
+    },
+    "alternate": {
+      "batter_total_bases_alternate": "Alternate batter total bases",
+      "batter_home_runs_alternate": "Alternate batter home runs",
+      "batter_hits_alternate": "Alternate batter hits",
+      "batter_rbis_alternate": "Alternate batter RBIs",
+      "pitcher_hits_allowed_alternate": "Alternate pitcher hits allowed",
+      "pitcher_walks_alternate": "Alternate pitcher walks allowed",
+      "pitcher_strikeouts_alternate": "Alternate pitcher strikeouts"
+    }
+  },
+  "hockey": {
+    "regular": {
+      "player_points": "Points",
+      "player_power_play_points": "Power play points",
+      "player_assists": "Assists",
+      "player_blocked_shots": "Blocked shots",
+      "player_shots_on_goal": "Shots on goal",
+      "player_goals": "Goals",
+      "player_total_saves": "Total saves",
+      "player_goal_scorer_first": "First Goal Scorer",
+      "player_goal_scorer_last": "Last Goal Scorer",
+      "player_goal_scorer_anytime": "Anytime Goal Scorer"
+    },
+    "alternate": {
+      "player_points_alternate": "Alternate Points",
+      "player_assists_alternate": "Alternate Assists",
+      "player_power_play_points_alternate": "Alternate Power Play Points",
+      "player_goals_alternate": "Alternate Goals",
+      "player_shots_on_goal_alternate": "Alternate Shots on Goal",
+      "player_blocked_shots_alternate": "Alternate Blocked Shots",
+      "player_total_saves_alternate": "Alternate Total Saves"
+    }
+  },
+  "afl": {
+    "regular": {
+      "player_disposals": "Disposals",
+      "player_disposals_over": "Disposals",
+      "player_goal_scorer_first": "First Goal Scorer",
+      "player_goal_scorer_last": "Last Goal Scorer",
+      "player_goal_scorer_anytime": "Anytime Goal Scorer",
+      "player_goals_scored_over": "Goals scored",
+      "player_marks_over": "Marks",
+      "player_marks_most": "Most Marks",
+      "player_tackles_over": "Tackles",
+      "player_tackles_most": "Tackles",
+      "player_afl_fantasy_points": "AFL Fantasy Points",
+      "player_afl_fantasy_points_over": "AFL Fantasy Points",
+      "player_afl_fantasy_points_most": "Most AFL Fantasy Points"
+    }
+  },
+  "rugby": {
+    "regular": {
+      "player_try_scorer_first": "First Try Scorer",
+      "player_try_scorer_last": "Last Try Scorer",
+      "player_try_scorer_anytime": "Anytime Try Scorer",
+      "player_try_scorer_over": "Tries Scored"
+    }
+  },
+  "soccer": {
+    "regular": {
+      "player_goal_scorer_anytime": "Anytime Goal Scorer",
+      "player_first_goal_scorer": "First Goal Scorer",
+      "player_last_goal_scorer": "Last Goal Scorer",
+      "player_to_receive_card": "Player to receive a card",
+      "player_to_receive_red_card": "Player to receive a red card",
+      "player_shots_on_target": "Player Shots on Target",
+      "player_shots": "Player Shots",
+      "player_assists": "Player Assists"
+    },
+    "other": {
+      "alternate_spreads_corners": "Handicap Corners",
+      "alternate_totals_corners": "Total Corners",
+      "alternate_spreads_cards": "Handicap Cards / Bookings",
+      "alternate_totals_cards": "Total Cards / Bookings",
+      "double_chance": "Double Chance"
+    }
+  }
+}

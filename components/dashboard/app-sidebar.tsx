@@ -25,8 +25,8 @@ const items = [
     icon: PersonStanding,
   },
   {
-    title: "Player Odds",
-    url: "/player-odds",
+    title: "Odds",
+    url: "/odds",
     icon: Percent,
   },
   {
