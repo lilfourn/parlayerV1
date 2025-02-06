@@ -1,8 +1,8 @@
 'use client';
 
-import { memo, useCallback, useEffect, useState } from 'react';
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from '@/components/ui/card';
+import { Skeleton } from "@/components/ui/skeleton";
+import { memo, useCallback, useEffect, useState } from 'react';
 interface Sport {
   key: string;
   title: string;

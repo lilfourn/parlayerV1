@@ -4,6 +4,58 @@ import axios from 'axios';
 import { MARKETS_CONFIG } from '@/app/odds/constants/markets';
 
 const BASE_URL = 'https://api.the-odds-api.com/v4';
+const INITIAL_RETRY_DELAY = 500; // 1 second
+const MAX_RETRIES = 3;
+
+// Sleep function for rate limiting
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Rate limited axios get with exponential backoff
+async function rateLimit<T>(
+  url: string, 
+  params: any, 
+  retryCount = 0
+): Promise<T> {
+  try {
+    // Add a small delay before each request to help prevent rate limiting
+    await sleep(INITIAL_RETRY_DELAY);
+    
+    const response = await axios.get<T>(url, { params });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 429 && retryCount < MAX_RETRIES) {
+      // Calculate exponential backoff delay
+      const backoffDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+      console.log(`Rate limited, retrying in ${backoffDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      
+      await sleep(backoffDelay);
+      return rateLimit(url, params, retryCount + 1);
+    }
+    throw error;
+  }
+}
+
+interface Market {
+  key: string;
+  description?: string;
+  outcomes: Array<{
+    name: string;
+    price: number;
+    point?: number;
+  }>;
+}
+
+interface Bookmaker {
+  key: string;
+  title: string;
+  markets: Market[];
+}
+
+interface OddsResponse {
+  id: string;
+  sport_key: string;
+  bookmakers: Bookmaker[];
+}
 
 function getMarketsForSport(sportKey: string): string {
   // Extract the base sport from the key (e.g., 'basketball_nba' -> 'basketball_nba')
@@ -65,16 +117,14 @@ export async function GET(request: Request) {
     const url = `${BASE_URL}/sports/${sportKey}/events/${eventId}/odds`;
     console.log('Requesting URL:', url);
 
-    const response = await axios.get(url, {
-      params: {
-        apiKey,
-        regions: 'us',
-        oddsFormat: 'american',
-        markets
-      }
+    const data = await rateLimit<OddsResponse>(url, {
+      apiKey,
+      regions: 'us',
+      oddsFormat: 'american',
+      markets
     });
 
-    if (!response.data) {
+    if (!data) {
       console.warn('No data received from API:', { eventId, sportKey });
       return NextResponse.json({ 
         error: 'No player props available',
@@ -84,12 +134,12 @@ export async function GET(request: Request) {
 
     // Transform the response to include player names from descriptions
     const transformedData = {
-      ...response.data,
-      bookmakers: response.data.bookmakers?.map((bookmaker: any) => ({
+      ...data,
+      bookmakers: data.bookmakers?.map((bookmaker: Bookmaker) => ({
         ...bookmaker,
-        markets: bookmaker.markets?.map((market: any) => ({
+        markets: bookmaker.markets?.map((market: Market) => ({
           ...market,
-          outcomes: market.outcomes?.map((outcome: any) => ({
+          outcomes: market.outcomes?.map(outcome => ({
             ...outcome,
             name: market.description || outcome.name, // Use description as player name if available
           }))

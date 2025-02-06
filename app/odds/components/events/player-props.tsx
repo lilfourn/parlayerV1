@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from '@/lib/utils';
 import { MARKETS_CONFIG } from '@/app/odds/constants/markets';
 
@@ -48,6 +49,36 @@ function formatMarketName(key: string): string {
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function PlayerPropsSkeleton() {
+  return (
+    <Card className="mt-4 p-4">
+      <div className="space-y-4">
+        {/* Market selector skeleton */}
+        <Skeleton className="h-10 w-[200px]" />
+        
+        {/* Table skeleton */}
+        <div className="space-y-2">
+          {/* Header */}
+          <div className="flex gap-4 py-2">
+            <Skeleton className="h-4 w-[150px]" />
+            <Skeleton className="h-4 w-[100px]" />
+            <Skeleton className="h-4 w-[100px]" />
+          </div>
+          
+          {/* Rows */}
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex gap-4 py-3">
+              <Skeleton className="h-4 w-[150px]" />
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-4 w-[100px]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
@@ -99,19 +130,8 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
     );
   }
 
-  // Combine all available markets
-  const availableMarkets = [
-    ...(sportMarkets.regular || []),
-    ...(sportMarkets.alternate || []),
-    ...(sportMarkets.other || [])
-  ];
-
   if (loading) {
-    return (
-      <Card className="mt-4 p-4 text-center">
-        Loading player props...
-      </Card>
-    );
+    return <PlayerPropsSkeleton />;
   }
 
   if (error) {
@@ -121,6 +141,13 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
       </Card>
     );
   }
+
+  // Combine all available markets
+  const availableMarkets = [
+    ...(sportMarkets.regular || []),
+    ...(sportMarkets.alternate || []),
+    ...(sportMarkets.other || [])
+  ];
 
   return (
     <div className="mt-4 space-y-4">

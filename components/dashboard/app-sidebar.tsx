@@ -1,4 +1,4 @@
-import { Home, PersonStanding, Percent, Trophy,  } from "lucide-react";
+import { WalletCards, PersonStanding, Percent, Trophy, Clock } from "lucide-react";
 import React from 'react';
 
 import {
@@ -15,9 +15,9 @@ import {
 // Menu items.
 const items = [
   {
-    title: "Home",
+    title: "My Picks",
     url: "/dashboard",
-    icon: Home,
+    icon: WalletCards,
   },
   {
     title: "Props",
@@ -28,6 +28,11 @@ const items = [
     title: "Odds",
     url: "/odds",
     icon: Percent,
+  },
+  {
+    title: "Historical Odds",
+    url: "/historicalOdds",
+    icon: Clock,
   },
   {
     title: "Results",
