@@ -1,17 +1,17 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SportsFilter } from '@/app/odds/components/sports/sports-filter';
 import { EventList } from './components/eventList';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import { CalendarComponent } from './components/calendar';
 import { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { useQueryState } from 'next-usequerystate';
 
 function EventListFallback() {
   return (
@@ -22,48 +22,37 @@ function EventListFallback() {
 }
 
 export default function HistoricalOdds() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const selectedSport = searchParams.get('sport');
+    const [sport, setSport] = useQueryState('sport', { defaultValue: 'basketball_nba' });
+    const [startDate, setStartDate] = useQueryState('startDate');
+    const [endDate, setEndDate] = useQueryState('endDate');
 
-    // Add effect to set default sport
-    useEffect(() => {
-        if (!selectedSport) {
-            const params = new URLSearchParams(searchParams);
-            params.set('sport', 'basketball_nba');
-            router.push(`/historicalOdds?${params.toString()}`);
-        }
-    }, [selectedSport, searchParams, router]);
+    const handleSportSelect = async (newSport: string) => {
+        await setSport(newSport);
+    };
 
-    const handleSportSelect = useCallback((sport: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('sport', sport);
-        
-        // Preserve date range if it exists
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
-        if (startDate) params.set('startDate', startDate);
-        if (endDate) params.set('endDate', endDate);
-        
-        router.push(`/historicalOdds?${params.toString()}`);
-    }, [router, searchParams]);
-
-    const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
-        if (!range?.from) return;
-        
-        const params = new URLSearchParams(searchParams);
-        params.set('startDate', format(range.from, 'yyyy-MM-dd'));
-        if (range.to) {
-            params.set('endDate', format(range.to, 'yyyy-MM-dd'));
-        } else {
-            params.delete('endDate');
+    const handleDateRangeChange = async (range: DateRange | undefined) => {
+        if (!range?.from) {
+            await Promise.all([
+                setStartDate(null),
+                setEndDate(null)
+            ]);
+            return;
         }
         
-        router.push(`/historicalOdds?${params.toString()}`);
-    }, [router, searchParams]);
+        await Promise.all([
+            setStartDate(format(range.from, 'yyyy-MM-dd')),
+            setEndDate(range.to ? format(range.to, 'yyyy-MM-dd') : null)
+        ]);
+    };
+
+    // Convert URL dates back to DateRange for calendar
+    const dateRange: DateRange | undefined = startDate ? {
+        from: parseISO(startDate),
+        to: endDate ? parseISO(endDate) : undefined
+    } : undefined;
 
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-50">
+        <div className="flex min-h-screen flex-col lg:flex-row overflow-hidden bg-gray-50">
             <SidebarProvider>
                 <AppSidebar />
                 <main className="flex-1 relative overflow-y-auto">
@@ -77,16 +66,23 @@ export default function HistoricalOdds() {
                         </div>
                     </div>
 
-                    <div className="p-4 space-y-4">
+                    <div className="p-4 space-y-6">
                         <div className="space-y-4">
-                            <SportsFilter 
-                                onSportSelect={handleSportSelect}
-                                selectedSport={selectedSport ?? undefined}
-                            />
-                            <CalendarComponent 
-                                onDateRangeChange={handleDateRangeChange}
-                                className="max-w-sm"
-                            />
+                            <div className="space-y-2">
+                                <h2 className="text-sm font-medium text-muted-foreground">Sport</h2>
+                                <SportsFilter 
+                                    onSportSelect={handleSportSelect}
+                                    selectedSport={sport}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <h2 className="text-sm font-medium text-muted-foreground">Date Range</h2>
+                                <CalendarComponent 
+                                    onDateRangeChange={handleDateRangeChange}
+                                    className="max-w-sm"
+                                    initialDateRange={dateRange}
+                                />
+                            </div>
                         </div>
                         <Suspense fallback={<EventListFallback />}>
                             <EventList />
