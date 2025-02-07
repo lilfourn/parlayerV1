@@ -6,6 +6,7 @@ import { LineChart } from 'lucide-react';
 import { SportsFilter } from './components/filters/sports';
 import { SearchBar } from './components/filters/searchbar';
 import { TeamList } from './components/filters/team-list';
+import { PlayerList } from './components/filters/player-list';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -67,20 +68,25 @@ export default function Dashboard() {
 
                     <div className="flex flex-1 overflow-hidden">
                         {/* Main Content */}
-                        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                            <SportsFilter 
-                                onSportSelect={handleSportSelect}
-                                selectedSport={selectedSport ?? undefined}
-                            />
-                            <SearchBar 
-                                onSearch={handleSearch}
-                                value={searchQuery ?? ''}
-                                placeholder="Search players..."
-                            />
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="p-4 space-y-4">
+                                <SportsFilter 
+                                    onSportSelect={handleSportSelect}
+                                    selectedSport={selectedSport ?? undefined}
+                                />
+                                <SearchBar 
+                                    onSearch={handleSearch}
+                                    value={searchQuery ?? ''}
+                                    placeholder="Search players..."
+                                />
+                                {selectedTeam && (
+                                    <PlayerList selectedTeamId={selectedTeam} />
+                                )}
+                            </div>
                         </div>
 
                         {/* Right Sidebar */}
-                        <div className="w-64 border-l border-gray-200 bg-white/50 h-full">
+                        <div className="w-64 border-l border-gray-200 bg-white/50 h-screen overflow-hidden">
                             <Suspense fallback={<TeamListFallback />}>
                                 <TeamList 
                                     onTeamSelect={handleTeamSelect}
