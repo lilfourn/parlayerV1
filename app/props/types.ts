@@ -63,6 +63,7 @@ export interface TeamData {
 export interface Projection {
     id: string;
     attributes: {
+        updated_at: string;
         description: string;
         status: string;
         line_score: number;

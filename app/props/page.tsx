@@ -90,7 +90,9 @@ export default function Props() {
           </div>
 
           <div className="p-4">
-            <ClientProjectionList initialData={initialData} refreshInterval={30000} />
+            <div className="max-w-7xl mx-auto">
+              <ClientProjectionList initialData={initialData} />
+            </div>
           </div>
         </main>
       </SidebarProvider>

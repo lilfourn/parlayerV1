@@ -1,4 +1,4 @@
-import { WalletCards, PersonStanding, Percent, Trophy, AreaChart } from "lucide-react";
+import { WalletCards, PersonStanding, Percent, Trophy, AreaChart, BarChart2} from "lucide-react";
 import React from 'react';
 
 import {
@@ -25,13 +25,18 @@ const items = [
     icon: PersonStanding,
   },
   {
+    title: "Analyze",
+    url: "/analyze",
+    icon: BarChart2,
+  },
+  {
     title: "Odds",
     url: "/odds",
     icon: Percent,
   },
   {
-    title: "Analyze",
-    url: "/analyze",
+    title: "Stats",
+    url: "/stats",
     icon: AreaChart,
   },
   {

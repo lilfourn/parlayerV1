@@ -3,16 +3,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ProjectionDisplay } from './projection-display';
 import type { ProjectionWithAttributes, ApiResponse } from '@/types/props';
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ClientProjectionListProps {
   initialData: ApiResponse;
-  refreshInterval?: number;
 }
 
-export function ClientProjectionList({ initialData, refreshInterval = 30000 }: ClientProjectionListProps) {
+export function ClientProjectionList({ initialData }: ClientProjectionListProps) {
   const [projectionData, setProjectionData] = useState<ProjectionWithAttributes[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const { toast } = useToast();
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
@@ -39,7 +43,13 @@ export function ClientProjectionList({ initialData, refreshInterval = 30000 }: C
         const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
         
         return {
-          projection,
+          projection: {
+            ...projection,
+            attributes: {
+              ...projection.attributes,
+              updated_at: projection.attributes.updated_at || new Date().toISOString(),
+            }
+          },
           player: player || null,
           stats: stats || null,
         };
@@ -57,13 +67,16 @@ export function ClientProjectionList({ initialData, refreshInterval = 30000 }: C
       });
 
       setProjectionData(sortedData);
+      setLastRefreshed(new Date());
     } catch (err) {
       console.error('Error processing projection data:', err);
       throw new Error('Failed to process projection data');
     }
   }, []);
 
-  const fetchAndUpdateProjections = useCallback(async () => {
+  const refreshProjections = useCallback(async () => {
+    if (isLoading) return;
+
     try {
       setIsLoading(true);
       setError(null);
@@ -73,70 +86,58 @@ export function ClientProjectionList({ initialData, refreshInterval = 30000 }: C
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to fetch projections');
-      }
-
-      processProjections(result.data);
+      const data = await response.json();
+      processProjections(data);
+      
+      toast({
+        title: "Projections Updated",
+        description: "Latest projections have been loaded.",
+        duration: 2000,
+      });
     } catch (err) {
       console.error('Error fetching projections:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load projections');
+      setError('Failed to fetch projections');
+      toast({
+        title: "Error",
+        description: "Failed to refresh projections. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [processProjections]);
+  }, [isLoading, processProjections, toast]);
 
-  // Initial load using provided data
+  // Initial load
   useEffect(() => {
-    if (initialData) {
-      processProjections(initialData);
-      setIsLoading(false);
-    } else {
-      fetchAndUpdateProjections();
-    }
-  }, [initialData, processProjections, fetchAndUpdateProjections]);
-
-  // Set up refresh interval
-  useEffect(() => {
-    if (!refreshInterval) return;
-
-    const intervalId = setInterval(fetchAndUpdateProjections, refreshInterval);
-    return () => clearInterval(intervalId);
-  }, [refreshInterval, fetchAndUpdateProjections]);
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-6 px-4">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
-          <span className="ml-3 text-gray-600">Loading projections...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-6 px-4">
-        <div className="text-center py-12">
-          <p className="text-red-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
+    processProjections(initialData);
+  }, [initialData, processProjections]);
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      {projectionData && projectionData.length > 0 ? (
-        <ProjectionDisplay
-          projectionData={projectionData}
-        />
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No projections available.</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">
+          Last updated: {lastRefreshed.toLocaleTimeString()}
+        </div>
+        <Button 
+          onClick={refreshProjections} 
+          disabled={isLoading}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+      
+      {error && (
+        <div className="text-sm text-red-500 bg-red-50 p-2 rounded">
+          {error}
         </div>
       )}
+      
+      <ProjectionDisplay projectionData={projectionData} />
     </div>
   );
 }

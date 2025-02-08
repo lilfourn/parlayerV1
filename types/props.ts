@@ -61,8 +61,24 @@ export interface TeamData {
 }
 
 export interface Projection {
+    type: any;
     id: string;
     attributes: {
+        odds_type: string;
+        custom_image: null;
+        end_time: null;
+        flash_sale_line_score: null;
+        hr_20: any;
+        in_game: any;
+        is_live: any;
+        is_promo: any;
+        projection_type: any;
+        rank: any;
+        refundable: any;
+        tv_channel: null;
+        board_time: any;
+        adjusted_odds: null;
+        updated_at: any;
         description: string;
         status: string;
         line_score: number;

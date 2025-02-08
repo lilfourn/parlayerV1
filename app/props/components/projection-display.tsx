@@ -19,10 +19,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
 import { PlayerAvatar } from './player-avatar';
 import { LeagueNav } from './league-nav';
 import { PlayerSearch } from './player-search';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // League configuration with icons and display names
 const LEAGUE_CONFIG = [
@@ -148,7 +155,10 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
   projectionData,
 }: ProjectionDisplayProps) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'average', desc: true } // Initialize sorting by average difference
+    {
+      id: 'average',
+      desc: true
+    }
   ]);
 
   const [selectedLeague, setSelectedLeague] = useState<string>('NBA');
@@ -216,19 +226,23 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       accessorKey: 'player',
       header: 'Player',
       cell: ({ row }) => {
-        const player = row.original.player?.attributes;
+        const player = row.original.player;
         if (!player) return null;
-        
+
         return (
-          <div className="flex items-center space-x-3">
-            <PlayerAvatar
-              name={player.name}
-              imageUrl={player.image_url || ''}
-              size={32}
+          <div className="flex items-center gap-2 min-w-[180px]">
+            <PlayerAvatar 
+              name={player.attributes.name}
+              imageUrl={player.attributes.image_url}
+              size={28}
             />
-            <div>
-              <div className="font-medium">{player.name}</div>
-              <div className="text-sm text-gray-500">{player.team}</div>
+            <div className="flex flex-col min-w-0">
+              <div className="font-medium text-sm truncate">
+                {player.attributes.name}
+              </div>
+              <div className="text-xs text-gray-500 truncate">
+                {player.attributes.team} • {row.original.projection.attributes.description}
+              </div>
             </div>
           </div>
         );
@@ -236,89 +250,62 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
     },
     {
       accessorKey: 'projection.attributes.stat_type',
-      header: 'Stat Type',
+      header: 'Stat',
       cell: ({ row }) => {
-        const statType = row.original.projection?.attributes.stat_type;
-        return statType ? (
-          <div className="font-medium">{getStatTypeDisplayName(statType)}</div>
-        ) : null;
+        return (
+          <div className="min-w-[80px] font-medium text-sm">
+            {row.original.projection.attributes.stat_type}
+          </div>
+        );
       },
     },
     {
       accessorKey: 'projection.attributes.line_score',
       header: 'Line',
       cell: ({ row }) => {
-        const projection = row.original.projection;
-        const lineScore = projection.attributes.line_score;
-        const lineMovement = projection.attributes.line_movement;
-
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{lineScore}</span>
-            {lineMovement && (
-              <div 
-                className={`flex items-center gap-1 text-sm px-2 py-0.5 rounded ${
-                  lineMovement.direction === 'up' 
-                    ? 'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
-                    : 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-                }`}
-              >
-                <span className="flex items-center">
-                  {lineMovement.direction === 'up' ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3" />
-                  )}
-                </span>
-                <span className="text-xs font-medium">
-                  {lineMovement.difference.toFixed(1)}
-                </span>
-                <span className="text-xs opacity-75">
-                  from {lineMovement.original}
-                </span>
-              </div>
-            )}
+          <div className="min-w-[60px] font-medium text-sm">
+            {row.original.projection.attributes.line_score}
           </div>
         );
       },
-      sortingFn: 'datetime',
     },
     // Add Average Stat column
     {
       id: 'average',
-      header: 'AVG Diff',
+      header: 'Analysis',
       cell: ({ row }) => {
         const stats = row.original.stats;
-        const lineScore = row.original.projection.attributes.line_score;
-        if (!stats?.attributes) return null;
+        const projection = row.original.projection;
         
-        const { average, count, max_value } = stats.attributes;
-        if (typeof average !== 'number') return null;
-
-        // Calculate if the current line is above or below the average
-        const diff = lineScore - average;
-        const diffPercentage = (diff / average) * 100;
+        if (!stats || !projection) return null;
+        
+        const avgValue = stats.attributes.average;
+        const lineScore = projection.attributes.line_score;
+        
+        if (!avgValue || !lineScore) return null;
+        
+        // Calculate percentage difference
+        const diff = ((lineScore - avgValue) / avgValue) * 100;
+        const absDiff = Math.abs(diff);
+        
+        // Calculate color intensity based on absolute difference
+        // Max intensity at 30% difference
+        const intensity = Math.min(absDiff / 30, 1);
+        
+        // Always use green, more intense for bigger absolute differences
+        const backgroundColor = `rgba(34, 197, 94, ${intensity * 0.3})`;
         
         return (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className={`font-medium ${Math.abs(diffPercentage) > 20 ? 'text-lg' : ''}`}>
-                {average.toFixed(1)}
-              </span>
-              <span className="text-xs text-gray-500">
-                ({count} games)
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-xs">
-              <span className={`font-medium ${diff > 0 ? 'text-amber-500' : 'text-emerald-500'} ${Math.abs(diffPercentage) > 20 ? 'font-bold' : ''}`}>
-                {diff > 0 ? '↑' : '↓'} {Math.abs(diffPercentage).toFixed(1)}%
-              </span>
-              <span className="text-gray-500">
-                vs {lineScore}
-              </span>
-            </div>
-            <div className="text-xs text-gray-500">
-              Max: {max_value}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-gray-600 min-w-[45px]">
+              {avgValue.toFixed(1)}
+            </span>
+            <div
+              className="px-2 py-1 rounded text-sm font-medium flex-1 text-center"
+              style={{ backgroundColor }}
+            >
+              {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
             </div>
           </div>
         );
@@ -326,11 +313,11 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       sortingFn: (rowA, rowB) => {
         const getPercentageDiff = (row: any) => {
           const stats = row.original.stats;
-          const lineScore = row.original.projection.attributes.line_score;
+          const projection = row.original.projection;
           if (!stats?.attributes?.average) return 0;
           
-          const diff = lineScore - stats.attributes.average;
-          return Math.abs(diff / stats.attributes.average * 100);
+          const diff = (projection.attributes.line_score - stats.attributes.average) / stats.attributes.average * 100;
+          return Math.abs(diff);
         };
 
         return getPercentageDiff(rowB) - getPercentageDiff(rowA);
@@ -338,39 +325,32 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
     },
     {
       accessorKey: 'projection.attributes.start_time',
-      header: 'Start Time',
+      header: 'Start',
       cell: ({ row }) => {
-        const startTime = row.original.projection?.attributes.start_time;
-        if (!startTime) return null;
-        
-        const date = new Date(startTime);
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        let dateDisplay;
-        if (date.toDateString() === today.toDateString()) {
-          dateDisplay = 'Today';
-        } else if (date.toDateString() === tomorrow.toDateString()) {
-          dateDisplay = 'Tomorrow';
-        } else {
-          dateDisplay = date.toLocaleDateString('en-US', { 
-            weekday: 'short',
-            month: 'short', 
-            day: 'numeric'
-          });
-        }
-        
-        const timeDisplay = date.toLocaleTimeString('en-US', { 
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-        
+        const startTime = new Date(row.original.projection.attributes.start_time);
         return (
-          <div className="space-y-0.5">
-            <div className="font-medium">{timeDisplay}</div>
-            <div className="text-sm text-gray-500">{dateDisplay}</div>
+          <div className="min-w-[90px]">
+            <div className="text-sm font-medium">{format(startTime, 'h:mm a')}</div>
+            <div className="text-[10px] text-gray-500 tracking-tight">{format(startTime, 'MMM d')}</div>
+          </div>
+        );
+      },
+      sortingFn: 'datetime',
+    },
+    {
+      accessorKey: 'projection.attributes.updated_at',
+      header: 'Updated',
+      cell: ({ row }) => {
+        const updatedAt = row.original.projection.attributes.updated_at;
+        if (!updatedAt) return null;
+        
+        const date = new Date(updatedAt);
+        return (
+          <div className="flex flex-col min-w-[100px]">
+            <span className="text-sm font-medium">{format(date, 'h:mm a')}</span>
+            <span className="text-[10px] text-gray-500 tracking-tight">
+              {formatDistanceToNow(date, { addSuffix: true })}
+            </span>
           </div>
         );
       },
