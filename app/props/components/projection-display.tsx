@@ -280,6 +280,50 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       },
       sortingFn: 'datetime',
     },
+    // Add Average Stat column
+    {
+      id: 'average',
+      header: 'AVG',
+      cell: ({ row }) => {
+        const stats = row.original.stats;
+        const lineScore = row.original.projection.attributes.line_score;
+        if (!stats?.attributes) return null;
+        
+        const { average, count, max_value } = stats.attributes;
+        if (typeof average !== 'number') return null;
+
+        // Calculate if the current line is above or below the average
+        const diff = lineScore - average;
+        const diffPercentage = (diff / average) * 100;
+        
+        return (
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{average.toFixed(1)}</span>
+              <span className="text-xs text-gray-500">
+                ({count} games)
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <span className={`font-medium ${diff > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                {diff > 0 ? '↑' : '↓'} {Math.abs(diffPercentage).toFixed(1)}%
+              </span>
+              <span className="text-gray-500">
+                vs line
+              </span>
+            </div>
+            <div className="text-xs text-gray-500">
+              Max: {max_value}
+            </div>
+          </div>
+        );
+      },
+      sortingFn: (rowA, rowB) => {
+        const aAvg = rowA.original.stats?.attributes.average ?? 0;
+        const bAvg = rowB.original.stats?.attributes.average ?? 0;
+        return aAvg - bAvg;
+      },
+    },
     {
       accessorKey: 'projection.attributes.start_time',
       header: 'Start Time',

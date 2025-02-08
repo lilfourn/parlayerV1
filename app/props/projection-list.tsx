@@ -47,19 +47,27 @@ export function ProjectionList({ apiResponse }: { apiResponse: ApiResponse }) {
     try {
       // Create player map
       const playerMap = new Map();
+      const statsMap = new Map();
+      
       response.included
         .filter(item => item.type === 'new_player')
         .forEach(player => playerMap.set(player.id, player));
+        
+      response.included
+        .filter(item => item.type === 'stat_average')
+        .forEach(stat => statsMap.set(stat.id, stat));
 
       // Process projections with their related data
       const processedData = response.data.map(projection => {
         const playerId = projection.relationships.new_player?.data?.id;
         const player = playerId ? playerMap.get(playerId) : undefined;
+        const statAverageId = projection.relationships.stat_average?.data?.id;
+        const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
         
         return {
           projection,
           player: player || null,
-          stats: null, // Add stats processing if needed
+          stats: stats || null,
         };
       });
 

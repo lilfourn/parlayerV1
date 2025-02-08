@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiResponse } from '@/types/props';
+import { connectProjectionsWithStatAverages, filterStatAverages } from '@/app/api/projections/stat_average';
 
 const CACHE_KEY = 'PROPS_PROJECTION_CACHE';
 const CACHE_EXPIRY = 4 * 60 * 60 * 1000; // 4 hours
@@ -66,12 +67,25 @@ export async function GET() {
 
     const data = await response.json();
     
+    // Process stat averages
+    const statAverages = filterStatAverages(data.included);
+    const connectedData = connectProjectionsWithStatAverages(data.data, statAverages);
+    
+    console.log('Stat Averages Found:', statAverages.length);
+    console.log('Connected Projections:', connectedData.length);
+    console.log('Sample Connection:', connectedData[0]);
+    
     // Save to cache
     await saveCache(data);
 
     return NextResponse.json({
       success: true,
       data: data,
+      stats: {
+        totalStatAverages: statAverages.length,
+        totalConnections: connectedData.length,
+        connectedData: connectedData
+      },
       cached: false,
       message: 'Fresh data fetched successfully'
     }, {
