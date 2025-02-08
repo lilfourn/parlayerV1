@@ -147,7 +147,10 @@ function getStatTypeDisplayName(statType: string): string {
 export const ProjectionDisplay = memo(function ProjectionDisplay({ 
   projectionData,
 }: ProjectionDisplayProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'average', desc: true } // Initialize sorting by average difference
+  ]);
+
   const [selectedLeague, setSelectedLeague] = useState<string>('NBA');
   const [selectedStatType, setSelectedStatType] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -283,7 +286,7 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
     // Add Average Stat column
     {
       id: 'average',
-      header: 'AVG',
+      header: 'AVG Diff',
       cell: ({ row }) => {
         const stats = row.original.stats;
         const lineScore = row.original.projection.attributes.line_score;
@@ -299,17 +302,19 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
         return (
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-medium">{average.toFixed(1)}</span>
+              <span className={`font-medium ${Math.abs(diffPercentage) > 20 ? 'text-lg' : ''}`}>
+                {average.toFixed(1)}
+              </span>
               <span className="text-xs text-gray-500">
                 ({count} games)
               </span>
             </div>
             <div className="flex items-center gap-1 text-xs">
-              <span className={`font-medium ${diff > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+              <span className={`font-medium ${diff > 0 ? 'text-amber-500' : 'text-emerald-500'} ${Math.abs(diffPercentage) > 20 ? 'font-bold' : ''}`}>
                 {diff > 0 ? '↑' : '↓'} {Math.abs(diffPercentage).toFixed(1)}%
               </span>
               <span className="text-gray-500">
-                vs line
+                vs {lineScore}
               </span>
             </div>
             <div className="text-xs text-gray-500">
@@ -319,9 +324,16 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
         );
       },
       sortingFn: (rowA, rowB) => {
-        const aAvg = rowA.original.stats?.attributes.average ?? 0;
-        const bAvg = rowB.original.stats?.attributes.average ?? 0;
-        return aAvg - bAvg;
+        const getPercentageDiff = (row: any) => {
+          const stats = row.original.stats;
+          const lineScore = row.original.projection.attributes.line_score;
+          if (!stats?.attributes?.average) return 0;
+          
+          const diff = lineScore - stats.attributes.average;
+          return Math.abs(diff / stats.attributes.average * 100);
+        };
+
+        return getPercentageDiff(rowB) - getPercentageDiff(rowA);
       },
     },
     {

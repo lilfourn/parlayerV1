@@ -45,7 +45,18 @@ export function ClientProjectionList({ initialData, refreshInterval = 30000 }: C
         };
       });
 
-      setProjectionData(processedData);
+      // Sort by difference percentage
+      const sortedData = processedData.sort((a, b) => {
+        const getDiffPercentage = (item: ProjectionWithAttributes) => {
+          if (!item.stats?.attributes?.average) return 0;
+          const diff = item.projection.attributes.line_score - item.stats.attributes.average;
+          return Math.abs(diff / item.stats.attributes.average * 100);
+        };
+
+        return getDiffPercentage(b) - getDiffPercentage(a);
+      });
+
+      setProjectionData(sortedData);
     } catch (err) {
       console.error('Error processing projection data:', err);
       throw new Error('Failed to process projection data');
