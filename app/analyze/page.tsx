@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ApiResponse } from '@/types/props';
+import { ApiResponse } from '@/app/types/props';
 import { DifferenceAnalysis } from './components/difference-analysis';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";

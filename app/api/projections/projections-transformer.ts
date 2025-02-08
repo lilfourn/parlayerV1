@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@/app/types/props';
+import type { ApiResponse } from '@/types/props';
 
 export interface TransformedProjection {
   id: string;

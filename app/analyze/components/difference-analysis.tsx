@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { ProjectionWithAttributes, ApiResponse, Projection, StatAverage, NewPlayer } from '@/types/props';
+import type { ProjectionWithAttributes, ApiResponse, Projection, StatAverage, NewPlayer, ProcessedProjection } from '@/app/types/props';
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ChevronLeft, ChevronRight, TrendingUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,50 +36,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { ProjectionDialog } from './projection-dialog';
 
 interface DifferenceAnalysisProps {
   initialData: ApiResponse;
-}
-
-interface ProcessedProjection {
-  projection: {
-    id: string;
-    type: string;
-    attributes: {
-      description: string;
-      status: string;
-      line_score: number;
-      start_time: string;
-      stat_type: string;
-      stat_display_name: string;
-      game_id: string;
-      updated_at: string;
-      odds_type: string;
-      line_movement?: {
-        original: number;
-        current: number;
-        direction: "up" | "down";
-        difference: number;
-      };
-    };
-    relationships: {
-      new_player: {
-        data: {
-          type: string;
-          id: string;
-        } | null;
-      };
-      stat_average: {
-        data: {
-          type: string;
-          id: string;
-        } | null;
-      };
-    };
-  };
-  player: NewPlayer | null;
-  statAverage: StatAverage | null;
-  percentageDiff: number;
 }
 
 export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
@@ -90,8 +50,9 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
   const { toast } = useToast();
-
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [selectedProjection, setSelectedProjection] = useState<ProcessedProjection | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
@@ -265,7 +226,8 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                     <TableHead className="text-right">Line</TableHead>
                     <TableHead className="text-right">Average</TableHead>
                     <TableHead className="text-right">Difference</TableHead>
-                    <TableHead className="text-right">Time</TableHead>
+                    <TableHead className="text-right">Recommended</TableHead>
+                    <TableHead className="text-right">Start Time</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,17 +241,22 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                       </TableRow>
                     ))
                   ) : currentData.map((item) => (
                     <TableRow 
                       key={item.projection.id}
-                      className="group hover:bg-muted/50 transition-colors"
+                      className="group hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedProjection(item);
+                        setIsDialogOpen(true);
+                      }}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <PlayerAvatar
-                            imageUrl={item.player?.attributes.image_url}
+                            imageUrl={item.player?.attributes.image_url || undefined}
                             name={item.player?.attributes.name || 'Unknown'}
                             size={32}
                           />
@@ -328,14 +295,28 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge 
-                          variant={item.percentageDiff > 0 ? "default" : "secondary"}
+                          variant="default"
                           className={`
-                            ${item.percentageDiff > 0 
+                            ${Math.abs(item.percentageDiff) >= 15
                               ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                              : 'bg-red-100 text-red-700 hover:bg-red-200'}
+                              : Math.abs(item.percentageDiff) >= 5
+                                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
                           `}
                         >
                           {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge 
+                          variant="outline"
+                          className={`
+                            ${item.percentageDiff > 0 
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
+                          `}
+                        >
+                          {item.percentageDiff > 0 ? 'LESS' : 'MORE'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
@@ -358,82 +339,118 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                   </Card>
                 ))
               ) : currentData.map((item) => (
-                <Collapsible
-                  key={item.projection.id}
-                  open={expandedRows.has(item.projection.id)}
-                  onOpenChange={() => toggleRow(item.projection.id)}
-                >
-                  <Card className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <PlayerAvatar
-                          imageUrl={item.player?.attributes.image_url}
-                          name={item.player?.attributes.name || 'Unknown'}
-                          size={40}
-                        />
-                        <div>
-                          <div className="font-medium">
-                            {item.player?.attributes.name || 'Unknown'}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {item.player?.attributes.team || 'No Team'}
+                <div key={item.projection.id} onClick={() => {
+                  setSelectedProjection(item);
+                  setIsDialogOpen(true);
+                }}>
+                  <Collapsible
+                    open={expandedRows.has(item.projection.id)}
+                    onOpenChange={() => toggleRow(item.projection.id)}
+                  >
+                    <Card className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <PlayerAvatar
+                            imageUrl={item.player?.attributes.image_url || undefined}
+                            name={item.player?.attributes.name || 'Unknown'}
+                            size={40}
+                          />
+                          <div>
+                            <div className="font-medium">
+                              {item.player?.attributes.name || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.player?.attributes.team || 'No Team'}
+                            </div>
                           </div>
                         </div>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <ChevronDown className={cn(
+                              "h-4 w-4 transition-transform duration-200",
+                              expandedRows.has(item.projection.id) && "transform rotate-180"
+                            )} />
+                          </Button>
+                        </CollapsibleTrigger>
                       </div>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <ChevronDown className={cn(
-                            "h-4 w-4 transition-transform duration-200",
-                            expandedRows.has(item.projection.id) && "transform rotate-180"
-                          )} />
-                        </Button>
-                      </CollapsibleTrigger>
-                    </div>
-                    
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge 
-                        variant="outline" 
-                        className={`${
-                          item.player?.attributes.league === 'NBA' 
-                            ? 'bg-orange-50 text-orange-700 border-orange-200' 
-                            : item.player?.attributes.league === 'NHL'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : item.player?.attributes.league === 'MLB'
-                            ? 'bg-red-50 text-red-700 border-red-200'
-                            : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {item.player?.attributes.league || 'Unknown'}
-                      </Badge>
-                      <Badge 
-                        variant={item.percentageDiff > 0 ? "default" : "secondary"}
-                        className={`
-                          ${item.percentageDiff > 0 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-red-100 text-red-700'}
-                        `}
-                      >
-                        {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
-                      </Badge>
-                    </div>
+                      
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`${
+                            item.player?.attributes.league === 'NBA' 
+                              ? 'bg-orange-50 text-orange-700 border-orange-200' 
+                              : item.player?.attributes.league === 'NHL'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : item.player?.attributes.league === 'MLB'
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-gray-50 text-gray-700 border-gray-200'
+                          }`}
+                        >
+                          {item.player?.attributes.league || 'Unknown'}
+                        </Badge>
+                        <Badge 
+                          variant="default"
+                          className={`
+                            ${Math.abs(item.percentageDiff) >= 15
+                              ? 'bg-emerald-100 text-emerald-700' 
+                              : Math.abs(item.percentageDiff) >= 5
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-gray-100 text-gray-700'}
+                          `}
+                        >
+                          {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
+                        </Badge>
+                      </div>
 
-                    <CollapsibleContent className="mt-4 space-y-2">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-muted-foreground">Stat</div>
-                        <div>{item.projection.attributes.stat_display_name}</div>
-                        
-                        <div className="text-muted-foreground">Line</div>
-                        <div className="font-medium">{item.projection.attributes.line_score}</div>
-                        
-                        <div className="text-muted-foreground">Average</div>
-                        <div>{item.statAverage?.attributes.average.toFixed(1)}</div>
-                        
-                        <div className="text-muted-foreground">Time</div>
-                        <div>{formatTime(item.projection.attributes.start_time)}</div>
-                      </div>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
+                      <CollapsibleContent className="mt-4 space-y-2">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-muted-foreground">Stat</div>
+                          <div>{item.projection.attributes.stat_display_name}</div>
+                          
+                          <div className="text-muted-foreground">Line</div>
+                          <div className="font-medium">{item.projection.attributes.line_score}</div>
+                          
+                          <div className="text-muted-foreground">Average</div>
+                          <div>{item.statAverage?.attributes.average.toFixed(1)}</div>
+                          
+                          <div className="text-muted-foreground">Difference</div>
+                          <div>
+                            <Badge 
+                              variant="default"
+                              className={`
+                                ${Math.abs(item.percentageDiff) >= 15
+                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                                  : Math.abs(item.percentageDiff) >= 5
+                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                              `}
+                            >
+                              {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-muted-foreground">Recommended</div>
+                          <div>
+                            <Badge 
+                              variant="outline"
+                              className={`
+                                ${item.percentageDiff > 0 
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
+                              `}
+                            >
+                              {item.percentageDiff > 0 ? 'LESS' : 'MORE'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-muted-foreground">Time</div>
+                          <div>{formatTime(item.projection.attributes.start_time)}</div>
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                </div>
               ))}
             </div>
 
@@ -479,6 +496,16 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
             <div className="text-xs text-muted-foreground text-center pt-2 border-t">
               Last updated: {lastRefreshed.toLocaleTimeString()}
             </div>
+
+            {/* Projection Dialog */}
+            <ProjectionDialog
+              projection={selectedProjection}
+              isOpen={isDialogOpen}
+              onClose={() => {
+                setIsDialogOpen(false);
+                setSelectedProjection(null);
+              }}
+            />
           </>
         )}
       </CardContent>

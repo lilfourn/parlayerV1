@@ -61,62 +61,46 @@ export interface TeamData {
 }
 
 export interface Projection {
-    type: any;
+    type: 'projection';
     id: string;
     attributes: {
-        odds_type: string;
-        custom_image: null;
-        end_time: null;
-        flash_sale_line_score: null;
-        hr_20: any;
-        in_game: any;
-        is_live: any;
-        is_promo: any;
-        projection_type: any;
-        rank: any;
-        refundable: any;
-        tv_channel: null;
-        board_time: any;
-        adjusted_odds: null;
-        updated_at: any;
+        adjusted_odds: number | null;
+        board_time: string;
+        custom_image: string | null;
         description: string;
-        status: string;
-        line_score: number;
-        start_time: string;
-        stat_type: string;
-        stat_display_name: string;
+        end_time: string | null;
+        flash_sale_line_score: number | null;
         game_id: string;
+        hr_20: boolean;
+        in_game: boolean;
+        is_live: boolean;
+        is_promo: boolean;
+        line_score: number;
         line_movement?: {
             original: number;
             current: number;
             direction: 'up' | 'down';
             difference: number;
         };
+        odds_type: string;
+        projection_type: string;
+        rank: number;
+        refundable: boolean;
+        start_time: string;
+        stat_display_name: string;
+        stat_type: string;
+        status: 'pre_game' | 'in_progress' | 'final' | string;
+        tv_channel: string | null;
+        updated_at: string;
     };
     relationships: {
-        duration: {
-            data: {
-                id: string;
-            };
-        };
-        new_player: {
-            data: {
-                type: string;
-                id: string;
-            };
-        };
-        stat_average: {
-            data: {
-                type: string;
-                id: string;
-            };
-        };
-        league: {
-            data: {
-                type: string;
-                id: string;
-            };
-        };
+        duration: { data: { type: string; id: string; } };
+        league: { data: { type: string; id: string; } };
+        new_player: { data: { type: string; id: string; } | null };
+        projection_type: { data: { type: string; id: string; } };
+        score: { data: null };
+        stat_average: { data: { type: string; id: string; } | null };
+        stat_type: { data: { type: string; id: string; } };
     };
 }
 

@@ -48,12 +48,11 @@ export function PlayerAvatar({ imageUrl, name, size = 32 }: PlayerAvatarProps) {
   }
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative overflow-hidden rounded-full" style={{ width: size, height: size }}>
       <Image
         src={sanitizedImageUrl}
         alt={name}
-        width={size}
-        height={size}
+        fill
         className="rounded-full object-cover"
         unoptimized
         onError={() => setImageError(true)}

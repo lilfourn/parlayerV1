@@ -90,3 +90,44 @@ export interface ProjectionWithAttributes {
   player: NewPlayer | null;
   stats: StatAverage | null;
 }
+
+export interface ProcessedProjection {
+  projection: {
+    id: string;
+    type: string;
+    attributes: {
+      description: string;
+      status: string;
+      line_score: number;
+      start_time: string;
+      stat_type: string;
+      stat_display_name: string;
+      game_id: string;
+      updated_at: string;
+      odds_type: string;
+      line_movement?: {
+        original: number;
+        current: number;
+        direction: "up" | "down";
+        difference: number;
+      };
+    };
+    relationships: {
+      new_player: {
+        data: {
+          type: string;
+          id: string;
+        } | null;
+      };
+      stat_average: {
+        data: {
+          type: string;
+          id: string;
+        } | null;
+      };
+    };
+  };
+  player: NewPlayer | null;
+  statAverage: StatAverage | null;
+  percentageDiff: number;
+}
