@@ -35,11 +35,6 @@ const items = [
     icon: Percent,
   },
   {
-    title: "Stats",
-    url: "/stats",
-    icon: AreaChart,
-  },
-  {
     title: "Results",
     url: "/results",
     icon: Trophy,

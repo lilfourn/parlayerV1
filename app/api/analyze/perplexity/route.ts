@@ -53,9 +53,9 @@ Statistics:
 - Performance Trend: *SEARCH UP RECENT TRENDS FOR ${playerName}*
 - Percentage Difference: ${percentageDiff}%
 
-${recentGamesStr}
+Recent Game: Research resent games, tournaments, rankings regarding ${playerName}, I would like an average for the ${statType} of  ${playerName} for the last 5, 10, 15, 20, and 50 games/matches
 
-League: ${league.type} - ${league.id}
+League: SEARCH WHAT LEAGUE ${playerName} IS IN
 Opponent: ${description}
 Start Time: ${startTime}
 
@@ -66,6 +66,9 @@ Consider:
 4. Recent games pattern
 5. Historical performance
 6. Current status and game context
+7. Social media sentiment and post from ${playerName} and about ${playerName} from verified news sources and social media platforms
+8. RESEARCH Odds data regarding ${playerName}'s Stat: ${statType}
+Line: ${line} on over 5 different bookie.
 
 Provide a detailed analysis with confidence level, recommendation, key factors, and risk assessment.`;
 }
@@ -81,6 +84,7 @@ For each projection, analyze the following aspects:
    - Find historical performance data for similar situations
    - Compare current projection to expert consensus from various sports analytics sites
    - Research team-specific factors that might affect the projection
+   
 
 2. Data Integration:
    - Compare the provided line to your researched data

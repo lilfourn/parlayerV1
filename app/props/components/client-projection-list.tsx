@@ -44,26 +44,28 @@ export function ClientProjectionList({ initialData }: ClientProjectionListProps)
         console.warn('No included data found in response');
       }
 
-      // Process projections with null checks
-      const processedData = response.data.map(projection => {
-        const playerId = projection.relationships.new_player?.data?.id;
-        const player = playerId ? playerMap.get(playerId) : undefined;
-        
-        const statAverageId = projection.relationships.stat_average?.data?.id;
-        const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
-        
-        return {
-          projection: {
-            ...projection,
-            attributes: {
-              ...projection.attributes,
-              updated_at: projection.attributes.updated_at || new Date().toISOString(),
-            }
-          },
-          player: player || null,
-          stats: stats || null,
-        };
-      });
+      // Process projections with null checks and filter by odds_type
+      const processedData = response.data
+        .filter(projection => projection.attributes.odds_type === 'standard')
+        .map(projection => {
+          const playerId = projection.relationships.new_player?.data?.id;
+          const player = playerId ? playerMap.get(playerId) : undefined;
+          
+          const statAverageId = projection.relationships.stat_average?.data?.id;
+          const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
+          
+          return {
+            projection: {
+              ...projection,
+              attributes: {
+                ...projection.attributes,
+                updated_at: projection.attributes.updated_at || new Date().toISOString(),
+              }
+            },
+            player: player || null,
+            stats: stats || null,
+          };
+        });
 
       // Sort by difference percentage
       const sortedData = processedData.sort((a, b) => {

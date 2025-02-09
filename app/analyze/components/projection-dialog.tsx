@@ -142,6 +142,13 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     }
   };
 
+  const handleClose = () => {
+    setAnalysis(null);
+    setError(null);
+    setIsAnalyzing(false);
+    onClose();
+  };
+
   const getRecommendationColor = (recommendation: AnalysisResponse['recommendation']) => {
     switch (recommendation) {
       case 'strong_over':
@@ -183,8 +190,18 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     }
   };
 
+  const getLineMovementIndicator = () => {
+    if (projection.projection.attributes.line_movement) {
+      return <ChevronUp className="h-4 w-4 text-green-500" />;
+    } else if (projection.projection.attributes.line_movement) {
+      return <ChevronDown className="h-4 w-4 text-red-500" />;
+    } else {
+      return <Minus className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
@@ -195,12 +212,18 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold truncate">
-                  {projection.player?.attributes.display_name}
+                <span className="font-semibold truncate leading-relaxed py-0.5">
+                  {projection.player?.attributes.display_name || 'Unknown Player'}
                 </span>
+                {projection.projection.attributes.is_promo && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Promo
+                  </Badge>
+                )}
               </div>
-              <div className="text-sm text-muted-foreground truncate">
-                {projection.projection.attributes.stat_display_name} - {projection.projection.attributes.line_score}
+              <div className="text-sm text-muted-foreground truncate leading-relaxed py-0.5">
+                {projection.projection.attributes.description}
               </div>
             </div>
           </DialogTitle>
@@ -226,70 +249,98 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
           </div>
 
           {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Season Average</h3>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
                   <div className="text-2xl font-bold">
-                    {projection.statAverage?.attributes.average.toFixed(1) || 'N/A'}
+                    {projection.projection.attributes.line_score}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Recent Average</h3>
-                  <div className="text-2xl font-bold">
-                    {projection.statAverage?.attributes.last_n_average?.toFixed(1) || 'N/A'}
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {projection.projection.attributes.stat_display_name}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  {getLineMovementIndicator()}
+                </CardContent>
+              </Card>
 
-          {/* Actions */}
-          {!analysis && !error && (
-            <div className="flex justify-center">
-              <Button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="w-full sm:w-auto"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Get AI Analysis
-                  </>
-                )}
-              </Button>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>{formatDate(projection.projection.attributes.start_time)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{formatTime(projection.projection.attributes.start_time)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-sm font-medium">Status</div>
+                  <div className="mt-1">
+                    <Badge variant="secondary" className="capitalize">
+                      {projection.projection.attributes.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-sm font-medium">Odds Type</div>
+                  <div className="mt-1">
+                    <Badge variant="secondary" className="capitalize">
+                      {projection.projection.attributes.odds_type.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
 
-          {/* Analysis Results */}
-          {analysis && (
-            <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
-              <AnalysisResults 
-                analysis={analysis} 
-                projection={projection}
-                onReanalyze={handleAnalyze}
-                isAnalyzing={isAnalyzing}
-              />
-            </ErrorBoundary>
-          )}
-          {error && (
-            <Card className="border-destructive">
-              <CardContent className="pt-6 text-destructive">
-                {error.message}
-              </CardContent>
-            </Card>
-          )}
+            {/* Actions */}
+            {!analysis && !error && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="w-full sm:w-auto"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Get AI Analysis
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Analysis Results */}
+            {analysis && (
+              <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
+                <AnalysisResults 
+                  analysis={analysis} 
+                  projection={projection}
+                  onReanalyze={handleAnalyze}
+                  isAnalyzing={isAnalyzing}
+                />
+              </ErrorBoundary>
+            )}
+            {error && (
+              <Card className="border-destructive">
+                <CardContent className="pt-6 text-destructive">
+                  {error.message}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

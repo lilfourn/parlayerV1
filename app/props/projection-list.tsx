@@ -49,32 +49,47 @@ export function ProjectionList({ apiResponse }: { apiResponse: ApiResponse }) {
       const playerMap = new Map();
       const statsMap = new Map();
       
-      response.included
-        .filter(item => item.type === 'new_player')
-        .forEach(player => playerMap.set(player.id, player));
-        
-      response.included
-        .filter(item => item.type === 'stat_average')
-        .forEach(stat => statsMap.set(stat.id, stat));
-
-      // Process projections with their related data
-      const processedData = response.data.map(projection => {
-        const playerId = projection.relationships.new_player?.data?.id;
-        const player = playerId ? playerMap.get(playerId) : undefined;
-        const statAverageId = projection.relationships.stat_average?.data?.id;
-        const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
-        
-        return {
-          projection,
-          player: player || null,
-          stats: stats || null,
-        };
+      // Process included data
+      response.included?.forEach(item => {
+        if (item.type === 'new_player') {
+          playerMap.set(item.id, item);
+        } else if (item.type === 'stat_average') {
+          statsMap.set(item.id, item);
+        }
       });
 
-      setProjectionData(processedData);
+      // Process and filter projections
+      const processedData = response.data
+        .filter(projection => projection.attributes.odds_type === 'standard')
+        .map(projection => {
+          const playerId = projection.relationships.new_player?.data?.id;
+          const player = playerId ? playerMap.get(playerId) : null;
+          
+          const statAverageId = projection.relationships.stat_average?.data?.id;
+          const stats = statAverageId ? statsMap.get(statAverageId) : null;
+          
+          return {
+            projection,
+            player,
+            stats
+          };
+        });
+
+      // Sort by difference percentage
+      const sortedData = processedData.sort((a, b) => {
+        const getDiffPercentage = (item: ProjectionWithAttributes) => {
+          if (!item.stats?.attributes?.average) return 0;
+          const diff = item.projection.attributes.line_score - item.stats.attributes.average;
+          return Math.abs(diff / item.stats.attributes.average * 100);
+        };
+
+        return getDiffPercentage(b) - getDiffPercentage(a);
+      });
+
+      setProjectionData(sortedData);
     } catch (err) {
-      console.error('Error processing projection data:', err);
-      throw new Error('Failed to process projection data');
+      console.error('Error processing projections:', err);
+      throw new Error('Failed to process projections');
     }
   }
   
