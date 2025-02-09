@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/app/props/components/player-avatar";
-import { TrendingUp, Clock, Calendar } from "lucide-react";
+import { TrendingUp, Clock, Calendar, Loader2 } from "lucide-react";
 import type { ProcessedProjection } from '@/app/types/props';
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProjectionDialogProps {
   projection: ProcessedProjection | null;
@@ -15,6 +17,9 @@ interface ProjectionDialogProps {
 }
 
 export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
   if (!projection) return null;
 
   const formatDate = (dateString: string) => {
@@ -38,6 +43,40 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} hours ago`;
     return formatDate(dateString);
+  };
+
+  const handleGetMoreInfo = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/analyze/deepseek', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projection: projection.projection,
+          player: projection.player,
+          stats: projection.statAverage,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to get analysis');
+
+      const data = await response.json();
+      // TODO: Handle the response data once the API is implemented
+      toast({
+        title: "Analysis Retrieved",
+        description: "Additional analysis has been generated for this projection.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get additional analysis. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -227,6 +266,36 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
                   Watch on {projection.projection.attributes.tv_channel}
                 </Badge>
               )}
+            </div>
+
+            {/* Get More Information Button */}
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full relative group overflow-hidden border-border hover:border-[#0066ff]/0 transition-all duration-300
+                  before:absolute before:inset-0 before:rounded-md before:border before:border-transparent before:transition-all before:duration-300
+                  hover:before:border-[#0066ff] hover:before:shadow-[0_0_15px_rgba(0,102,255,0.5)]
+                  bg-background"
+                onClick={handleGetMoreInfo}
+                disabled={isLoading}
+              >
+                <div className="relative flex items-center justify-center gap-2 py-2 group-hover:scale-[0.98] transition-transform duration-300">
+                  {isLoading ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-[#0066ff]" />
+                        <span className="text-base font-medium">Generating Analysis...</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="h-5 w-5 text-[#0066ff] transition-transform group-hover:scale-110" />
+                      <span className="text-base font-medium">Get Deeper Analysis</span>
+                    </>
+                  )}
+                </div>
+              </Button>
             </div>
           </CardContent>
         </Card>
