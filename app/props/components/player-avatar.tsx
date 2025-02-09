@@ -2,14 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
-interface PlayerAvatarProps {
+interface PlayerAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   imageUrl?: string;
   name: string;
   size?: number;
 }
 
-export function PlayerAvatar({ imageUrl, name, size = 32 }: PlayerAvatarProps) {
+export function PlayerAvatar({ imageUrl, name, size = 32, className, ...props }: PlayerAvatarProps) {
   const [imageError, setImageError] = useState(false);
 
   // Sanitize and validate the image URL
@@ -33,8 +34,9 @@ export function PlayerAvatar({ imageUrl, name, size = 32 }: PlayerAvatarProps) {
   if (!sanitizedImageUrl || imageError) {
     return (
       <div 
-        className="rounded-full bg-gray-200 flex items-center justify-center"
+        className={cn("rounded-full bg-gray-200 flex items-center justify-center", className)}
         style={{ width: size, height: size }}
+        {...props}
       >
         <span className="text-gray-600 text-sm font-medium">
           {name.split(' ')
@@ -48,13 +50,17 @@ export function PlayerAvatar({ imageUrl, name, size = 32 }: PlayerAvatarProps) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-full" style={{ width: size, height: size }}>
+    <div 
+      className={cn("relative overflow-hidden rounded-full", className)}
+      style={{ width: size, height: size }}
+      {...props}
+    >
       <Image
         src={sanitizedImageUrl}
         alt={name}
         fill
-        className="rounded-full object-cover"
-        unoptimized
+        sizes={`${size}px`}
+        className="object-cover"
         onError={() => setImageError(true)}
       />
     </div>

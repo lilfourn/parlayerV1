@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { ApiResponse } from '@/types/props';
 import { connectProjectionsWithStatAverages, filterStatAverages } from '@/app/api/projections/stat_average';
+import { ApiResponse } from '@/types/props';
+import { NextResponse } from 'next/server';
 
 const CACHE_KEY = 'PROPS_PROJECTION_CACHE';
 const CACHE_EXPIRY = 4 * 60 * 60 * 1000; // 4 hours

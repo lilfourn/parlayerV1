@@ -20,3 +20,19 @@ export function resolveRelationship<T extends IncludedItem>(
     
     return found ?? null;
 }
+
+export function isValidApiResponse(response: unknown): response is ApiResponse {
+  if (!response || typeof response !== 'object') return false;
+  
+  const typedResponse = response as Partial<ApiResponse>;
+  
+  // Check if data array exists and is valid
+  if (!Array.isArray(typedResponse.data)) return false;
+  
+  // Check if included array exists (if present)
+  if (typedResponse.included !== undefined && !Array.isArray(typedResponse.included)) {
+    return false;
+  }
+  
+  return true;
+}

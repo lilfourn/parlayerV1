@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ProjectionDisplay } from './projection-display';
-import type { ProjectionWithAttributes, ApiResponse } from '@/types/props';
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import type { ApiResponse, ProjectionWithAttributes } from '@/types/props';
+import { RefreshCw } from "lucide-react";
+import React, { useCallback, useEffect, useState } from 'react';
+import { ProjectionDisplay } from './projection-display';
 
 interface ClientProjectionListProps {
   initialData: ApiResponse;
@@ -20,21 +20,31 @@ export function ClientProjectionList({ initialData }: ClientProjectionListProps)
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
-      // Create player and stats maps
+      // Validate response structure
+      if (!response || !Array.isArray(response.data)) {
+        throw new Error('Invalid response format: missing or invalid data array');
+      }
+
+      // Create maps with proper type checking
       const playerMap = new Map();
       const statsMap = new Map();
 
-      // Process players
-      response.included
-        .filter(item => item.type === 'new_player')
-        .forEach(player => playerMap.set(player.id, player));
+      // Safely process included data if it exists
+      if (Array.isArray(response.included)) {
+        // Process players
+        response.included
+          .filter(item => item.type === 'new_player')
+          .forEach(player => playerMap.set(player.id, player));
 
-      // Process stat averages
-      response.included
-        .filter(item => item.type === 'stat_average')
-        .forEach(stat => statsMap.set(stat.id, stat));
+        // Process stat averages
+        response.included
+          .filter(item => item.type === 'stat_average')
+          .forEach(stat => statsMap.set(stat.id, stat));
+      } else {
+        console.warn('No included data found in response');
+      }
 
-      // Process projections with their related data
+      // Process projections with null checks
       const processedData = response.data.map(projection => {
         const playerId = projection.relationships.new_player?.data?.id;
         const player = playerId ? playerMap.get(playerId) : undefined;
@@ -86,8 +96,12 @@ export function ClientProjectionList({ initialData }: ClientProjectionListProps)
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      processProjections(data);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to fetch projections');
+      }
+
+      processProjections(result.data);
       
       toast({
         title: "Projections Updated",

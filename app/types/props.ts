@@ -33,7 +33,7 @@ export interface Projection {
   };
   relationships: {
     duration: { data: { type: string; id: string; } };
-    league: { data: { type: string; id: string; } };
+    league?: { data: { type: string; id: string; } };
     new_player: { data: { type: string; id: string; } | null };
     projection_type: { data: { type: string; id: string; } };
     score: { data: null };
@@ -131,9 +131,27 @@ export interface ProcessedProjection {
           id: string;
         } | null;
       };
+      league?: {
+        data: {
+          type: string;
+          id: string;
+        };
+      };
     };
   };
   player: NewPlayer | null;
   statAverage: StatAverage | null;
   percentageDiff: number;
+}
+
+export interface AnalysisResponse {
+  confidence: number;
+  recommendation: 'strong_over' | 'lean_over' | 'neutral' | 'lean_under' | 'strong_under';
+  key_factors: Array<{
+    factor: string;
+    impact: 'positive' | 'negative' | 'neutral';
+    weight: number;
+  }>;
+  summary: string;
+  risk_level: 'low' | 'medium' | 'high';
 }

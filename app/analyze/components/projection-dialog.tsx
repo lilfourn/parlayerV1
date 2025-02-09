@@ -1,14 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/app/props/components/player-avatar";
-import { TrendingUp, Clock, Calendar, Loader2 } from "lucide-react";
-import type { ProcessedProjection } from '@/app/types/props';
+import { TrendingUp, Clock, Calendar, Loader2, ChevronUp, ChevronDown, Minus, Sparkles } from "lucide-react";
+import type { ProcessedProjection, AnalysisResponse } from '@/app/types/props';
 import { useToast } from "@/components/ui/use-toast";
+import { analyzeProjection } from '@/app/actions';
+import { cn } from "@/lib/utils";
+import { ErrorBoundary } from './error-boundary';
+import { AnalysisResults } from './analysis-results';
+
+// Error display component
+const AnalysisErrorDisplay = () => (
+  <Card className="mt-4 border-destructive">
+    <CardContent className="pt-6 text-destructive">
+      Failed to display analysis. Showing raw data...
+    </CardContent>
+  </Card>
+);
 
 interface ProjectionDialogProps {
   projection: ProcessedProjection | null;
@@ -18,6 +31,9 @@ interface ProjectionDialogProps {
 
 export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
   if (!projection) return null;
@@ -46,32 +62,20 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   };
 
   const handleGetMoreInfo = async () => {
+    if (!projection) return;
+    
     try {
       setIsLoading(true);
-      const response = await fetch('/api/analyze/deepseek', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projection: projection.projection,
-          player: projection.player,
-          stats: projection.statAverage,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to get analysis');
-
-      const data = await response.json();
-      // TODO: Handle the response data once the API is implemented
+      const analysis: AnalysisResponse = await analyzeProjection(projection);
+      setAnalysis(analysis);
       toast({
-        title: "Analysis Retrieved",
-        description: "Additional analysis has been generated for this projection.",
+        title: "Analysis Complete",
+        description: "AI analysis has been generated for this projection.",
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to get additional analysis. Please try again.",
+        title: "Analysis Failed",
+        description: "Unable to analyze the projection at this time.",
         variant: "destructive",
       });
     } finally {
@@ -79,226 +83,214 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     }
   };
 
+  const handleAnalyze = async () => {
+    try {
+      console.log('Starting analysis request:', {
+        player: {
+          name: projection.player?.attributes.display_name,
+          team: projection.player?.attributes.team,
+          attributes: projection.player?.attributes
+        },
+        projection: {
+          ...projection.projection.attributes,
+          relationships: projection.projection.relationships
+        },
+        stats: {
+          season_average: projection.statAverage?.attributes.average,
+          recent_average: projection.statAverage?.attributes.last_n_average,
+          trend: projection.statAverage?.attributes.trend,
+          recent_games: projection.statAverage?.attributes.recent_games,
+          percentage_diff: projection.percentageDiff
+        }
+      });
+
+      setIsAnalyzing(true);
+      const analysis: AnalysisResponse = await analyzeProjection(projection);
+      
+      console.log('Analysis completed successfully:', {
+        hasResult: !!analysis,
+        confidence: analysis?.confidence,
+        recommendation: analysis?.recommendation,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!analysis) {
+        throw new Error('No analysis result received');
+      }
+
+      setAnalysis(analysis);
+      setError(null);
+      toast({
+        title: 'Analysis Complete',
+        description: 'The projection analysis has been updated.',
+      });
+    } catch (error) {
+      console.error('Analysis failed:', {
+        error,
+        timestamp: new Date().toISOString(),
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      setError(error instanceof Error ? error : new Error('Failed to analyze projection'));
+      toast({
+        title: 'Analysis Failed',
+        description: error instanceof Error ? error.message : 'Failed to analyze projection',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const getRecommendationColor = (recommendation: AnalysisResponse['recommendation']) => {
+    switch (recommendation) {
+      case 'strong_over':
+        return 'text-green-600 dark:text-green-500';
+      case 'lean_over':
+        return 'text-green-500 dark:text-green-400';
+      case 'neutral':
+        return 'text-gray-600 dark:text-gray-400';
+      case 'lean_under':
+        return 'text-red-500 dark:text-red-400';
+      case 'strong_under':
+        return 'text-red-600 dark:text-red-500';
+    }
+  };
+
+  const getRecommendationIcon = (recommendation: AnalysisResponse['recommendation']) => {
+    switch (recommendation) {
+      case 'strong_over':
+        return <ChevronUp className="w-5 h-5" />;
+      case 'lean_over':
+        return <ChevronUp className="w-4 h-4" />;
+      case 'neutral':
+        return <Minus className="w-4 h-4" />;
+      case 'lean_under':
+        return <ChevronDown className="w-4 h-4" />;
+      case 'strong_under':
+        return <ChevronDown className="w-5 h-5" />;
+    }
+  };
+
+  const getRiskLevelColor = (riskLevel: AnalysisResponse['risk_level']) => {
+    switch (riskLevel) {
+      case 'low':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'high':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            Projection Details
+          <DialogTitle className="flex items-center gap-3">
+            <PlayerAvatar
+              name={projection.player?.attributes.display_name || 'Unknown Player'}
+              imageUrl={projection.player?.attributes.image_url || ''}
+              className="h-8 w-8"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold truncate">
+                  {projection.player?.attributes.display_name}
+                </span>
+              </div>
+              <div className="text-sm text-muted-foreground truncate">
+                {projection.projection.attributes.stat_display_name} - {projection.projection.attributes.line_score}
+              </div>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Player Info Card */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-6">
-              {/* Player Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <PlayerAvatar
-                    imageUrl={projection.player?.attributes.image_url || undefined}
-                    name={projection.player?.attributes.name || 'Unknown'}
-                    size={64}
-                  />
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {projection.player?.attributes.name || 'Unknown Player'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {projection.player?.attributes.team || 'Unknown Team'}
-                    </p>
-                  </div>
-                </div>
-                <Badge 
-                  variant="secondary"
-                  className="capitalize"
-                >
-                  {projection.projection.attributes.status}
-                </Badge>
-              </div>
-
-              {/* Main Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                {/* Stat Type */}
-                <div>
-                  <div className="text-sm text-muted-foreground">Stat</div>
-                  <div className="font-semibold">Fantasy Score</div>
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <span className="text-muted-foreground/60">vs</span>
-                    {projection.projection.attributes.description}
-                  </div>
-                </div>
-
-                {/* Line */}
-                <div>
-                  <div className="text-sm text-muted-foreground">Line</div>
-                  <div className="font-semibold">{projection.projection.attributes.line_score}</div>
-                </div>
-
-                {/* Analysis */}
-                <div>
-                  <div className="text-sm text-muted-foreground">Analysis</div>
-                  <Badge 
-                    variant="default"
-                    className={`
-                      ${Math.abs(projection.percentageDiff) >= 15
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                        : Math.abs(projection.percentageDiff) >= 5
-                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                    `}
-                  >
-                    {projection.percentageDiff > 0 ? '+' : ''}{projection.percentageDiff.toFixed(1)}%
-                  </Badge>
-                </div>
-
-                {/* Start Time */}
-                <div>
-                  <div className="text-sm text-muted-foreground">Start</div>
-                  <div className="font-semibold">
-                    {formatTime(projection.projection.attributes.start_time)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDate(projection.projection.attributes.start_time)}
-                  </div>
-                </div>
-
-                {/* Updated */}
-                <div>
-                  <div className="text-sm text-muted-foreground">Updated</div>
-                  <div className="font-semibold">
-                    {formatTimeAgo(projection.projection.attributes.updated_at)}
-                  </div>
-                </div>
-
-                {/* Empty column to maintain grid layout */}
-                <div></div>
-              </div>
+        <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+          {/* Game Info */}
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                {formatTime(projection.projection.attributes.start_time)}
+              </Badge>
+              <Badge variant="secondary" className="gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {formatDate(projection.projection.attributes.start_time)}
+              </Badge>
+              <Badge variant="secondary" className="gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {projection.projection.attributes.stat_display_name}
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Details Card */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Line Details */}
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-4">Line Details</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Line Score</div>
-                    <div className="font-semibold">{projection.projection.attributes.line_score}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Average</div>
-                    <div className="font-semibold">{projection.statAverage?.attributes.average.toFixed(1)}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Difference</div>
-                    <Badge 
-                      variant="default"
-                      className={`
-                        ${Math.abs(projection.percentageDiff) >= 15
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                          : Math.abs(projection.percentageDiff) >= 5
-                            ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                      `}
-                    >
-                      {projection.percentageDiff > 0 ? '+' : ''}{projection.percentageDiff.toFixed(1)}%
-                    </Badge>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Recommended</div>
-                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                      {projection.percentageDiff > 0 ? 'LESS' : 'MORE'}
-                    </Badge>
+          {/* Stats */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Season Average</h3>
+                  <div className="text-2xl font-bold">
+                    {projection.statAverage?.attributes.average.toFixed(1) || 'N/A'}
                   </div>
                 </div>
-              </div>
-
-              {/* Stats Info */}
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-4">Stats Info</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Sample Size</div>
-                    <div className="font-semibold">{projection.statAverage?.attributes.count || 'N/A'} games</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Max Value</div>
-                    <div className="font-semibold">{projection.statAverage?.attributes.max_value || 'N/A'}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Recent Average</h3>
+                  <div className="text-2xl font-bold">
+                    {projection.statAverage?.attributes.last_n_average?.toFixed(1) || 'N/A'}
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Game Info */}
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-4">Game Info</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Date</div>
-                    <div>{formatDate(projection.projection.attributes.start_time)}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Time</div>
-                    <div>{formatTime(projection.projection.attributes.start_time)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Flags */}
-            <div className="mt-6 flex flex-wrap gap-2">
-              {projection.projection.attributes.refundable && (
-                <Badge variant="secondary">Refundable</Badge>
-              )}
-              {projection.projection.attributes.tv_channel && (
-                <Badge variant="outline">
-                  Watch on {projection.projection.attributes.tv_channel}
-                </Badge>
-              )}
-            </div>
-
-            {/* Get More Information Button */}
-            <div className="mt-6">
+          {/* Actions */}
+          {!analysis && !error && (
+            <div className="flex justify-center">
               <Button
-                variant="outline"
-                size="lg"
-                className="w-full relative group overflow-hidden border-border hover:border-[#0066ff]/0 transition-all duration-300
-                  before:absolute before:inset-0 before:rounded-md before:border before:border-transparent before:transition-all before:duration-300
-                  hover:before:border-[#0066ff] hover:before:shadow-[0_0_15px_rgba(0,102,255,0.5)]
-                  bg-background"
-                onClick={handleGetMoreInfo}
-                disabled={isLoading}
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className="w-full sm:w-auto"
               >
-                <div className="relative flex items-center justify-center gap-2 py-2 group-hover:scale-[0.98] transition-transform duration-300">
-                  {isLoading ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin text-[#0066ff]" />
-                        <span className="text-base font-medium">Generating Analysis...</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingUp className="h-5 w-5 text-[#0066ff] transition-transform group-hover:scale-110" />
-                      <span className="text-base font-medium">Get Deeper Analysis</span>
-                    </>
-                  )}
-                </div>
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Get AI Analysis
+                  </>
+                )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* Analysis Results */}
+          {analysis && (
+            <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
+              <AnalysisResults 
+                analysis={analysis} 
+                projection={projection}
+                onReanalyze={handleAnalyze}
+                isAnalyzing={isAnalyzing}
+              />
+            </ErrorBoundary>
+          )}
+          {error && (
+            <Card className="border-destructive">
+              <CardContent className="pt-6 text-destructive">
+                {error.message}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

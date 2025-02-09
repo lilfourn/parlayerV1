@@ -30,6 +30,7 @@ export function ClientDifferenceList({ initialData }: ClientDifferenceListProps)
     try {
       const playerMap = new Map();
       const statsMap = new Map();
+      const leagueMap = new Map();
 
       response.included
         .filter(item => item.type === 'new_player')
@@ -39,12 +40,19 @@ export function ClientDifferenceList({ initialData }: ClientDifferenceListProps)
         .filter(item => item.type === 'stat_average')
         .forEach(stat => statsMap.set(stat.id, stat));
 
+      response.included
+        .filter(item => item.type === 'league')
+        .forEach(league => leagueMap.set(league.id, league));
+
       const processedData = response.data.map(projection => {
         const playerId = projection.relationships.new_player?.data?.id;
-        const player = playerId ? playerMap.get(playerId) : undefined;
+        const player = playerId ? playerMap.get(playerId) : null;
         
         const statAverageId = projection.relationships.stat_average?.data?.id;
-        const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
+        const stats = statAverageId ? statsMap.get(statAverageId) : null;
+        
+        const leagueId = projection.relationships.league?.data?.id;
+        const league = leagueId ? leagueMap.get(leagueId) : null;
         
         return {
           projection: {
@@ -52,11 +60,16 @@ export function ClientDifferenceList({ initialData }: ClientDifferenceListProps)
             attributes: {
               ...projection.attributes,
               updated_at: projection.attributes.updated_at || new Date().toISOString(),
+            },
+            relationships: {
+              ...projection.relationships,
+              league: league ? { data: { type: 'league', id: league.id } } : undefined
             }
           },
           player,
-          stats
-        };
+          stats,
+          percentageDiff: 0 // Will be calculated later
+        } as ProjectionWithAttributes;
       });
 
       return processedData;
