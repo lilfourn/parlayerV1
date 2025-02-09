@@ -9,7 +9,7 @@ export interface StatAverage {
 }
 
 export interface NewPlayer {
-    type: string;
+    type: 'new_player';
     id: string;
     attributes: {
         combo: boolean;

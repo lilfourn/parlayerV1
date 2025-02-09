@@ -89,6 +89,12 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
               id: projection.id,
               type: projection.type,
               attributes: {
+                is_promo: projection.attributes.is_promo,
+                is_live: projection.attributes.is_live,
+                in_game: projection.attributes.in_game,
+                hr_20: projection.attributes.hr_20,
+                refundable: projection.attributes.refundable,
+                tv_channel: projection.attributes.tv_channel,
                 description: projection.attributes.description,
                 status: projection.attributes.status,
                 line_score: projection.attributes.line_score,

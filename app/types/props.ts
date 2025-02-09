@@ -96,6 +96,12 @@ export interface ProcessedProjection {
     id: string;
     type: string;
     attributes: {
+      is_promo: any;
+      is_live: any;
+      in_game: any;
+      hr_20: any;
+      refundable: any;
+      tv_channel: any;
       description: string;
       status: string;
       line_score: number;
