@@ -12,17 +12,20 @@ const PAYOUT_MULTIPLIERS = {
 
 interface BetSlipStore {
   selections: ProjectionWithAttributes[];
+  isCollapsed: boolean;
   addSelection: (projection: ProjectionWithAttributes) => void;
   removeSelection: (projectionId: string) => void;
   clearSelections: () => void;
   hasSelection: (projectionId: string) => boolean;
   getPayoutMultiplier: () => number;
+  toggleCollapsed: () => void;
 }
 
 export const useBetSlipStore = create<BetSlipStore>()(
   persist(
     (set, get) => ({
       selections: [],
+      isCollapsed: false,
       addSelection: (projection) => {
         const currentSelections = get().selections;
         const hasSelection = get().hasSelection(projection.projection.id);
@@ -45,6 +48,9 @@ export const useBetSlipStore = create<BetSlipStore>()(
       getPayoutMultiplier: () => {
         const count = get().selections.length;
         return count >= 2 ? PAYOUT_MULTIPLIERS[count as keyof typeof PAYOUT_MULTIPLIERS] || 0 : 0;
+      },
+      toggleCollapsed: () => {
+        set((state) => ({ isCollapsed: !state.isCollapsed }));
       },
     }),
     {
