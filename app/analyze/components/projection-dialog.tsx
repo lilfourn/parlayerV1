@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/app/props/components/player-avatar";
 import { TrendingUp, Clock, Calendar, Loader2, ChevronUp, ChevronDown, Minus, Sparkles } from "lucide-react";
-import type { ProcessedProjection, AnalysisResponse } from '@/app/types/props';
+import type { ProcessedProjection, AnalysisResponse, ProjectionWithAttributes } from '@/app/types/props';
 import { useToast } from "@/components/ui/use-toast";
 import { analyzeProjection } from '@/app/actions';
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from './error-boundary';
 import { AnalysisResults } from './analysis-results';
+import { useBetSlipStore } from '@/app/props/stores/bet-slip-store';
+import { BetSlip } from '@/components/dashboard/bet-slip';
 
 // Error display component
 const AnalysisErrorDisplay = () => (
@@ -34,6 +36,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const { addSelection, hasSelection } = useBetSlipStore();
   const { toast } = useToast();
 
   if (!projection) return null;
@@ -142,6 +145,62 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     }
   };
 
+  // Helper function to convert ProcessedProjection to ProjectionWithAttributes
+  function convertToProjectionWithAttributes(processed: ProcessedProjection): ProjectionWithAttributes {
+    return {
+      projection: {
+        type: "projection" as const,
+        id: processed.projection.id,
+        attributes: {
+          adjusted_odds: null,  // Default value since it's missing
+          board_time: processed.projection.attributes.start_time, // Using start_time as board_time
+          custom_image: null,  // Default value since it's missing
+          description: processed.projection.attributes.description,
+          end_time: null,  // Default value since it's missing
+          flash_sale_line_score: null,  // Default value since it's missing
+          game_id: processed.projection.attributes.game_id,
+          hr_20: processed.projection.attributes.hr_20,
+          in_game: processed.projection.attributes.in_game,
+          is_live: processed.projection.attributes.is_live,
+          is_promo: processed.projection.attributes.is_promo,
+          line_score: processed.projection.attributes.line_score,
+          line_movement: processed.projection.attributes.line_movement,
+          odds_type: processed.projection.attributes.odds_type,
+          projection_type: processed.projection.attributes.stat_type, // Using stat_type as projection_type
+          rank: 0,  // Default value since it's missing
+          refundable: processed.projection.attributes.refundable,
+          start_time: processed.projection.attributes.start_time,
+          stat_display_name: processed.projection.attributes.stat_display_name,
+          stat_type: processed.projection.attributes.stat_type,
+          status: processed.projection.attributes.status,
+          tv_channel: processed.projection.attributes.tv_channel,
+          updated_at: processed.projection.attributes.updated_at
+        },
+        relationships: {
+          ...processed.projection.relationships,
+          duration: processed.projection.relationships.duration,
+          projection_type: processed.projection.relationships.projection_type,
+          score: processed.projection.relationships.score,
+          stat_type: processed.projection.relationships.stat_type,
+          new_player: processed.projection.relationships.new_player,
+          stat_average: processed.projection.relationships.stat_average,
+          league: processed.projection.relationships.league
+        }
+      },
+      player: processed.player,
+      stats: processed.statAverage
+    };
+  }
+
+  const handleAddToBetSlip = () => {
+    if (!projection) return;
+    addSelection(convertToProjectionWithAttributes(projection));
+    toast({
+      title: "Prop Added",
+      description: "The prop has been added to your bet slip.",
+    });
+  };
+
   const handleClose = () => {
     setAnalysis(null);
     setError(null);
@@ -200,9 +259,125 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     }
   };
 
+  const renderContent = () => (
+    <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+      {/* Game Info */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary" className="gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {formatTime(projection.projection.attributes.start_time)}
+          </Badge>
+          <Badge variant="secondary" className="gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
+            {formatDate(projection.projection.attributes.start_time)}
+          </Badge>
+          <Badge variant="secondary" className="gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5" />
+            {projection.projection.attributes.stat_display_name}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold">
+                {projection.projection.attributes.line_score}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {projection.projection.attributes.stat_display_name}
+              </div>
+              {getLineMovementIndicator()}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>{formatDate(projection.projection.attributes.start_time)}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span>{formatTime(projection.projection.attributes.start_time)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm font-medium">Status</div>
+              <div className="mt-1">
+                <Badge variant="secondary" className="capitalize">
+                  {projection.projection.attributes.status.replace('_', ' ')}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm font-medium">Odds Type</div>
+              <div className="mt-1">
+                <Badge variant="secondary" className="capitalize">
+                  {projection.projection.attributes.odds_type.replace('_', ' ')}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Actions */}
+        {!analysis && !error && (
+          <div className="flex justify-center">
+            <Button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="w-full sm:w-auto"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Get AI Analysis
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Analysis Results */}
+        {analysis && (
+          <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
+            <AnalysisResults 
+              analysis={analysis} 
+              projection={projection}
+              onReanalyze={handleAnalyze}
+              isAnalyzing={isAnalyzing}
+            />
+          </ErrorBoundary>
+        )}
+        {error && (
+          <Card className="border-destructive">
+            <CardContent className="pt-6 text-destructive">
+              {error.message}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <PlayerAvatar
@@ -226,122 +401,16 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
                 {projection.projection.attributes.description}
               </div>
             </div>
+            <Button 
+              variant="outline" 
+              onClick={handleAddToBetSlip}
+              disabled={hasSelection(projection.projection.id)}
+            >
+              {hasSelection(projection.projection.id) ? 'Added to Slip' : 'Add Prop'}
+            </Button>
           </DialogTitle>
         </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto pr-1 space-y-6">
-          {/* Game Info */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                {formatTime(projection.projection.attributes.start_time)}
-              </Badge>
-              <Badge variant="secondary" className="gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatDate(projection.projection.attributes.start_time)}
-              </Badge>
-              <Badge variant="secondary" className="gap-1.5">
-                <TrendingUp className="h-3.5 w-3.5" />
-                {projection.projection.attributes.stat_display_name}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">
-                    {projection.projection.attributes.line_score}
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {projection.projection.attributes.stat_display_name}
-                  </div>
-                  {getLineMovementIndicator()}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(projection.projection.attributes.start_time)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatTime(projection.projection.attributes.start_time)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-sm font-medium">Status</div>
-                  <div className="mt-1">
-                    <Badge variant="secondary" className="capitalize">
-                      {projection.projection.attributes.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-sm font-medium">Odds Type</div>
-                  <div className="mt-1">
-                    <Badge variant="secondary" className="capitalize">
-                      {projection.projection.attributes.odds_type.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Actions */}
-            {!analysis && !error && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={isAnalyzing}
-                  className="w-full sm:w-auto"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get AI Analysis
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Analysis Results */}
-            {analysis && (
-              <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
-                <AnalysisResults 
-                  analysis={analysis} 
-                  projection={projection}
-                  onReanalyze={handleAnalyze}
-                  isAnalyzing={isAnalyzing}
-                />
-              </ErrorBoundary>
-            )}
-            {error && (
-              <Card className="border-destructive">
-                <CardContent className="pt-6 text-destructive">
-                  {error.message}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+        {renderContent()}
       </DialogContent>
     </Dialog>
   );

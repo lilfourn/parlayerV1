@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { Roboto_Mono } from 'next/font/google';
+import { Providers } from './providers';
 import './globals.css';
 
 const robotoMono = Roboto_Mono({
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
       <body className={cn('min-h-screen bg-background font-mono antialiased')} suppressHydrationWarning>
         <main className="relative flex min-h-screen flex-col" suppressHydrationWarning>
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </main>
       </body>
     </html>

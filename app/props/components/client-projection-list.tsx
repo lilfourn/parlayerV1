@@ -7,8 +7,6 @@ import { RefreshCw } from "lucide-react";
 import React, { useCallback, useEffect, useState } from 'react';
 import { ProjectionDisplay } from './projection-display';
 import { ProjectionDialog } from '@/app/analyze/components/projection-dialog';
-import { useBetSlipStore } from '@/app/props/stores/bet-slip-store';
-import { BetSlip } from '@/components/dashboard/bet-slip';
 
 interface ClientProjectionListProps {
   initialData: ApiResponse;
@@ -28,7 +26,6 @@ export function ClientProjectionList({
   const [selectedProjection, setSelectedProjection] = useState<ProjectionWithAttributes | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { addSelection } = useBetSlipStore();
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
@@ -181,7 +178,6 @@ export function ClientProjectionList({
         onProjectionSelect={(projection) => {
           setSelectedProjection(projection);
           setIsDialogOpen(true);
-          addSelection(projection);
         }}
         selectedProjectionId={selectedProjection?.projection.id}
       />
@@ -210,8 +206,6 @@ export function ClientProjectionList({
           {isLoading ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
-      
-      <BetSlip />
     </div>
   );
 }

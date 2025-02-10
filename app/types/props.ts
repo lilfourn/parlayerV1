@@ -94,7 +94,7 @@ export interface ProjectionWithAttributes {
 export interface ProcessedProjection {
   projection: {
     id: string;
-    type: string;
+    type: 'projection';
     attributes: {
       is_promo: any;
       is_live: any;
@@ -119,6 +119,10 @@ export interface ProcessedProjection {
       };
     };
     relationships: {
+      duration: { data: { type: string; id: string; }; };
+      projection_type: { data: { type: string; id: string; }; };
+      score: { data: null; };
+      stat_type: { data: { type: string; id: string; }; };
       new_player: {
         data: {
           type: string;
