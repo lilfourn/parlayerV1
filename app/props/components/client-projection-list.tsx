@@ -2,20 +2,29 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import type { ApiResponse, ProjectionWithAttributes } from '@/types/props';
+import type { ApiResponse, ProjectionWithAttributes, ProcessedProjection, StatAverage } from '@/app/types/props';
 import { RefreshCw } from "lucide-react";
 import React, { useCallback, useEffect, useState } from 'react';
 import { ProjectionDisplay } from './projection-display';
+import { ProjectionDialog } from '@/app/analyze/components/projection-dialog';
 
 interface ClientProjectionListProps {
   initialData: ApiResponse;
+  onProjectionSelect?: (projection: ProjectionWithAttributes) => void;
+  selectedProjectionId?: string;
 }
 
-export function ClientProjectionList({ initialData }: ClientProjectionListProps) {
+export function ClientProjectionList({ 
+  initialData, 
+  onProjectionSelect,
+  selectedProjectionId 
+}: ClientProjectionListProps) {
   const [projectionData, setProjectionData] = useState<ProjectionWithAttributes[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [selectedProjection, setSelectedProjection] = useState<ProjectionWithAttributes | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const processProjections = useCallback((response: ApiResponse) => {
@@ -129,10 +138,61 @@ export function ClientProjectionList({ initialData }: ClientProjectionListProps)
     processProjections(initialData);
   }, [initialData, processProjections]);
 
+  function transformToProcessedProjection(projection: ProjectionWithAttributes): ProcessedProjection {
+    const stats = projection.stats as StatAverage;
+    const avgValue = stats?.attributes?.average ?? 0;
+    const lineScore = projection.projection.attributes.line_score;
+    const diff = avgValue ? ((lineScore - avgValue) / avgValue) * 100 : 0;
+
+    return {
+      projection: {
+        ...projection.projection,
+        type: 'projection',
+        relationships: {
+          ...projection.projection.relationships,
+          new_player: {
+            data: projection.projection.relationships.new_player?.data ?? null
+          },
+          stat_average: {
+            data: projection.projection.relationships.stat_average?.data ?? null
+          },
+          league: projection.projection.relationships.league
+        }
+      },
+      player: projection.player,
+      statAverage: stats,
+      percentageDiff: diff,
+    };
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {error && (
+        <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <ProjectionDisplay 
+        projectionData={projectionData} 
+        onProjectionSelect={(projection) => {
+          setSelectedProjection(projection);
+          setIsDialogOpen(true);
+        }}
+        selectedProjectionId={selectedProjection?.projection.id}
+      />
+
+      <ProjectionDialog 
+        projection={selectedProjection ? transformToProcessedProjection(selectedProjection) : null}
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setSelectedProjection(null);
+        }}
+      />
+
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-500">
+        <div className="text-xs text-gray-500">
           Last updated: {lastRefreshed.toLocaleTimeString()}
         </div>
         <Button 
@@ -146,14 +206,6 @@ export function ClientProjectionList({ initialData }: ClientProjectionListProps)
           {isLoading ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
-      
-      {error && (
-        <div className="text-sm text-red-500 bg-red-50 p-2 rounded">
-          {error}
-        </div>
-      )}
-      
-      <ProjectionDisplay projectionData={projectionData} />
     </div>
   );
 }

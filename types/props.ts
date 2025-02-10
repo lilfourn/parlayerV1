@@ -1,5 +1,5 @@
 export interface StatAverage {
-    type: string;
+    type: 'stat_average';
     id: string;
     attributes: {
         average: number;
@@ -14,7 +14,7 @@ export interface NewPlayer {
     attributes: {
         combo: boolean;
         display_name: string;
-        image_url: string;
+        image_url: string | null;
         league: string;
         league_id: number;
         market: string | null;
@@ -23,7 +23,7 @@ export interface NewPlayer {
         team: string;
         team_name: string | null;
     };
-    relationships: {
+    relationships?: {
         league: {
             data: {
                 type: string;
@@ -95,7 +95,7 @@ export interface Projection {
     };
     relationships: {
         duration: { data: { type: string; id: string; } };
-        league: { data: { type: string; id: string; } };
+        league?: { data: { type: string; id: string; } };
         new_player: { data: { type: string; id: string; } | null };
         projection_type: { data: { type: string; id: string; } };
         score: { data: null };

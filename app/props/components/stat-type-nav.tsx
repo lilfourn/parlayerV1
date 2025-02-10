@@ -35,7 +35,9 @@ function getStatTypesByLeague(projections: ProjectionWithAttributes[]) {
   projections.forEach(({ projection }) => {
     if (!projection) return;
     
-    const league = projection.relationships.league.data.id;
+    const league = projection.relationships.league?.data.id;
+    if (!league) return; // Skip if no league data
+    
     const statType = projection.attributes.stat_type;
     
     if (!statTypesByLeague.has(league)) {

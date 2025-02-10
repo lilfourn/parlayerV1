@@ -86,6 +86,8 @@ const LEAGUE_CONFIG = [
 
 interface ProjectionDisplayProps {
   projectionData: ProjectionWithAttributes[];
+  onProjectionSelect?: (projection: ProjectionWithAttributes) => void;
+  selectedProjectionId?: string;
 }
 
 // Helper function to sanitize player data
@@ -153,6 +155,8 @@ function getStatTypeDisplayName(statType: string): string {
 
 export const ProjectionDisplay = memo(function ProjectionDisplay({ 
   projectionData,
+  onProjectionSelect,
+  selectedProjectionId,
 }: ProjectionDisplayProps) {
   const [sorting, setSorting] = useState<SortingState>([
     {
@@ -233,7 +237,7 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
           <div className="flex items-center gap-2 min-w-[180px]">
             <PlayerAvatar 
               name={player.attributes.name}
-              imageUrl={player.attributes.image_url}
+              imageUrl={player.attributes.image_url ?? undefined}
               size={28}
             />
             <div className="flex flex-col min-w-0">
@@ -479,13 +483,14 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={`cursor-pointer hover:bg-muted/50 ${
+                    selectedProjectionId === row.original.projection.id ? 'bg-muted' : ''
+                  }`}
+                  onClick={() => onProjectionSelect?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
