@@ -4,6 +4,7 @@ import { useBetSlipStore } from '@/app/props/stores/bet-slip-store';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -17,7 +18,10 @@ export function BetSlip() {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 bg-white shadow-lg rounded-lg overflow-hidden">
+    <Card className={cn(
+      "fixed bottom-4 right-4 w-96 bg-white shadow-lg rounded-lg overflow-hidden transition-all duration-300",
+      selections.length === 6 && "ring-2 ring-amber-500/50 ring-offset-2 ring-offset-white shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
+    )}>
       <div className="relative p-4 border-b bg-gray-50">
         {selections.length === 6 && (
           <div className="absolute inset-x-0 -top-0.5 flex items-center justify-center">
