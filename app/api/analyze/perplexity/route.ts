@@ -178,7 +178,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(analysis);
     } catch (parseError) {
       console.error('Failed to parse API response as JSON:', content);
-      throw new Error('Invalid response format from API');
+      
+      // Fallback parsing mechanism
+      const fallbackAnalysis: AnalysisResponse = {
+        confidence: 0,
+        recommendation: 'neutral',
+        key_factors: [],
+        summary: '',
+        risk_level: 'high'
+      };
+
+      // Try to extract recommendation
+      const recommendationMatch = content.match(/recommendation["\s:]+(strong_over|lean_over|neutral|lean_under|strong_under)/i);
+      if (recommendationMatch) {
+        fallbackAnalysis.recommendation = recommendationMatch[1].toLowerCase() as AnalysisResponse['recommendation'];
+      }
+
+      // Try to extract confidence
+      const confidenceMatch = content.match(/confidence["\s:]+(\d+(\.\d+)?)/i);
+      if (confidenceMatch) {
+        fallbackAnalysis.confidence = parseFloat(confidenceMatch[1]);
+      }
+
+      // Try to extract summary
+      const summaryMatch = content.match(/summary["\s:]+"([^"]+)"/i);
+      if (summaryMatch) {
+        fallbackAnalysis.summary = summaryMatch[1];
+      }
+
+      console.log('Using fallback parsing mechanism:', fallbackAnalysis);
+      return NextResponse.json(fallbackAnalysis);
     }
 
   } catch (error) {
