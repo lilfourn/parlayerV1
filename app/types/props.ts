@@ -94,17 +94,27 @@ export interface ProjectionWithAttributes {
   stats: StatAverage | null;
 }
 
+export interface ProcessedProjectionRelationships {
+  duration: { data: { type: string; id: string; }; };
+  projection_type: { data: { type: string; id: string; }; };
+  score: { data: null; };
+  stat_type: { data: { type: string; id: string; }; };
+  new_player: { data: { type: string; id: string; } | null; };
+  stat_average: { data: { type: string; id: string; } | null; };
+  league?: { data: { type: string; id: string; }; };
+}
+
 export interface ProcessedProjection {
   projection: {
     id: string;
     type: 'projection';
     attributes: {
-      is_promo: any;
-      is_live: any;
-      in_game: any;
-      hr_20: any;
-      refundable: any;
-      tv_channel: any;
+      is_promo: boolean;
+      is_live: boolean;
+      in_game: boolean;
+      hr_20: boolean;
+      refundable: boolean;
+      tv_channel: string | null;
       description: string;
       status: string;
       line_score: number;
@@ -121,34 +131,22 @@ export interface ProcessedProjection {
         difference: number;
       };
     };
-    relationships: {
-      duration: { data: { type: string; id: string; }; };
-      projection_type: { data: { type: string; id: string; }; };
-      score: { data: null; };
-      stat_type: { data: { type: string; id: string; }; };
-      new_player: {
-        data: {
-          type: string;
-          id: string;
-        } | null;
-      };
-      stat_average: {
-        data: {
-          type: string;
-          id: string;
-        } | null;
-      };
-      league?: {
-        data: {
-          type: string;
-          id: string;
-        };
-      };
-    };
+    relationships: ProcessedProjectionRelationships;
   };
   player: NewPlayer | null;
   statAverage: StatAverage | null;
   percentageDiff: number;
+}
+
+export const isValidProcessedProjection = (data: any): data is ProcessedProjection => {
+  return (
+    data?.projection?.id &&
+    data?.projection?.type === 'projection' &&
+    typeof data?.projection?.attributes?.line_score === 'number' &&
+    typeof data?.percentageDiff === 'number' &&
+    (!data.player || data.player.type === 'new_player') &&
+    (!data.statAverage || data.statAverage.type === 'stat_average')
+  );
 }
 
 export interface AnalysisResponse {

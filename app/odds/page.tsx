@@ -7,6 +7,7 @@ import { EventsList } from './components/events/events-list';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DollarSign } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/spinner';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 function EventsListFallback() {
   return <LoadingScreen />;
@@ -39,13 +40,16 @@ export default function Odds() {
             <SidebarProvider>
                 <AppSidebar />
                 <main className="flex-1 relative">
-                    <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm">
-                        <div className="flex items-center h-14 px-4 border-b border-gray-200">
-                            <SidebarTrigger />
-                            <div className="ml-4 flex items-center space-x-4">
-                                <DollarSign className="h-5 w-5 text-blue-500" />
-                                <h1 className="text-lg font-semibold">Sports Odds</h1>
+                    <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
+                        <div className="flex items-center justify-between h-14 px-4 border-b border-border">
+                            <div className="flex items-center space-x-4">
+                                <SidebarTrigger />
+                                <div className="flex items-center space-x-4">
+                                    <DollarSign className="h-5 w-5 text-primary" />
+                                    <h1 className="text-lg font-semibold text-foreground">Sports Odds</h1>
+                                </div>
                             </div>
+                            <ThemeToggle />
                         </div>
                         <div className="px-4 py-4">
                             {!isLoading && (

@@ -20,7 +20,7 @@ export const LeagueNav = memo(function LeagueNav({
   onLeagueSelect,
 }: LeagueNavProps) {
   return (
-    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
       {leagues.map((league) => (
         <button
           key={league.id}
@@ -31,7 +31,7 @@ export const LeagueNav = memo(function LeagueNav({
             ${
               selectedLeague === league.id
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-background hover:bg-gray-100'
+                : 'bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }
           `}
         >

@@ -66,8 +66,8 @@ export const SportsFilter = memo(function SportsFilter({
   }, [fetchSports]);
 
   return (
-    <Card>
-      <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+    <Card className="bg-gray-50 dark:bg-gray-800/50">
+      <div className="flex flex-wrap gap-2 p-2 rounded-lg">
         {sports.map((sport) => (
           <button
             key={sport.key}
@@ -77,8 +77,8 @@ export const SportsFilter = memo(function SportsFilter({
               transition-colors duration-200
               ${
                 selectedSport === sport.key
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'bg-background hover:bg-gray-100 hover:text-blue-600'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }
             `}
           >

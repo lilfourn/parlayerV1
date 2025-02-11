@@ -1,9 +1,16 @@
 "use client"
 
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50/20 to-white dark:from-gray-900 dark:to-gray-950">
+      {/* Theme Toggle */}
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-6xl mx-auto text-center space-y-8">

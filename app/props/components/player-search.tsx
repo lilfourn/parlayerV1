@@ -36,15 +36,15 @@ export function PlayerSearch({ projections, onSearch }: PlayerSearchProps) {
   }, [debouncedSearch]);
 
   return (
-    <div className="w-full bg-gray-50 p-2 rounded-lg">
+    <div className="w-full bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
           type="text"
           placeholder="Search by player name, team, or position..."
           value={searchTerm}
           onChange={handleSearch}
-          className="pl-10 w-full bg-white"
+          className="pl-10 w-full bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
         />
       </div>
     </div>

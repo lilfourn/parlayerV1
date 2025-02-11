@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { isValidProcessedProjection } from '@/app/types/props';
 import type { ProjectionWithAttributes, ApiResponse, Projection, StatAverage, NewPlayer, ProcessedProjection } from '@/app/types/props';
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ChevronLeft, ChevronRight, TrendingUp, ChevronDown } from "lucide-react";
@@ -56,66 +57,85 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
-      const playerMap = new Map();
-      const statsMap = new Map();
+      const playerMap = new Map<string, NewPlayer>();
+      const statsMap = new Map<string, StatAverage>();
 
       // Process players
       response.included
-        .filter(item => item.type === 'new_player')
+        .filter((item): item is NewPlayer => item.type === 'new_player')
         .forEach(player => playerMap.set(player.id, player));
 
       // Process stat averages
       response.included
-        .filter(item => item.type === 'stat_average')
+        .filter((item): item is StatAverage => item.type === 'stat_average')
         .forEach(stat => statsMap.set(stat.id, stat));
 
       // Process projections with their related data
       const processedData = response.data
         .filter(projection => projection.attributes.odds_type === 'standard')
         .map(projection => {
-          const playerId = projection.relationships.new_player?.data?.id;
-          const player = playerId ? playerMap.get(playerId) : null;
-          
-          const statAverageId = projection.relationships.stat_average?.data?.id;
-          const statAverage = statAverageId ? statsMap.get(statAverageId) : null;
-          
-          // Calculate percentage difference
-          const line = projection.attributes.line_score;
-          const average = statAverage?.attributes.average || 0;
-          const percentageDiff = average > 0 ? ((line - average) / average) * 100 : 0;
+          try {
+            const playerId = projection.relationships.new_player?.data?.id;
+            const player = playerId ? (playerMap.get(playerId) ?? null) : null;
+            
+            const statAverageId = projection.relationships.stat_average?.data?.id;
+            const statAverage = statAverageId ? (statsMap.get(statAverageId) ?? null) : null;
+            
+            // Calculate percentage difference with safety checks
+            const line = projection.attributes.line_score;
+            const average = statAverage?.attributes.average ?? 0;
+            const percentageDiff = average > 0 ? ((line - average) / average) * 100 : 0;
 
-          return {
-            projection: {
-              id: projection.id,
-              type: projection.type,
-              attributes: {
-                is_promo: projection.attributes.is_promo,
-                is_live: projection.attributes.is_live,
-                in_game: projection.attributes.in_game,
-                hr_20: projection.attributes.hr_20,
-                refundable: projection.attributes.refundable,
-                tv_channel: projection.attributes.tv_channel,
-                description: projection.attributes.description,
-                status: projection.attributes.status,
-                line_score: projection.attributes.line_score,
-                start_time: projection.attributes.start_time,
-                stat_type: projection.attributes.stat_type,
-                stat_display_name: projection.attributes.stat_display_name,
-                game_id: projection.attributes.game_id,
-                updated_at: projection.attributes.updated_at,
-                odds_type: projection.attributes.odds_type,
-                line_movement: projection.attributes.line_movement,
+            // Create processed projection with required relationships
+            const processedProjection: ProcessedProjection = {
+              projection: {
+                id: projection.id,
+                type: projection.type,
+                attributes: {
+                  is_promo: Boolean(projection.attributes.is_promo),
+                  is_live: Boolean(projection.attributes.is_live),
+                  in_game: Boolean(projection.attributes.in_game),
+                  hr_20: Boolean(projection.attributes.hr_20),
+                  refundable: Boolean(projection.attributes.refundable),
+                  tv_channel: projection.attributes.tv_channel,
+                  description: projection.attributes.description,
+                  status: projection.attributes.status,
+                  line_score: projection.attributes.line_score,
+                  start_time: projection.attributes.start_time,
+                  stat_type: projection.attributes.stat_type,
+                  stat_display_name: projection.attributes.stat_display_name,
+                  game_id: projection.attributes.game_id,
+                  updated_at: projection.attributes.updated_at,
+                  odds_type: projection.attributes.odds_type,
+                  line_movement: projection.attributes.line_movement,
+                },
+                relationships: {
+                  duration: projection.relationships.duration,
+                  projection_type: projection.relationships.projection_type,
+                  score: projection.relationships.score,
+                  stat_type: projection.relationships.stat_type,
+                  new_player: projection.relationships.new_player,
+                  stat_average: projection.relationships.stat_average,
+                  league: projection.relationships.league,
+                },
               },
-              relationships: {
-                new_player: projection.relationships.new_player,
-                stat_average: projection.relationships.stat_average,
-              },
-            },
-            player,
-            statAverage,
-            percentageDiff
-          };
+              player,
+              statAverage,
+              percentageDiff
+            };
+
+            if (!isValidProcessedProjection(processedProjection)) {
+              console.warn('Invalid projection data:', projection.id);
+              return null;
+            }
+
+            return processedProjection;
+          } catch (err) {
+            console.warn('Error processing projection:', projection.id, err);
+            return null;
+          }
         })
+        .filter((item): item is ProcessedProjection => item !== null)
         .sort((a, b) => Math.abs(b.percentageDiff) - Math.abs(a.percentageDiff));
 
       setProjectionData(processedData);

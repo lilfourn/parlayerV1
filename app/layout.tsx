@@ -21,8 +21,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
-      <body className={cn('min-h-screen bg-background font-mono antialiased')} suppressHydrationWarning>
-        <main className="relative flex min-h-screen flex-col" suppressHydrationWarning>
+      <body className={cn('min-h-screen bg-background font-mono antialiased transition-colors duration-300')} suppressHydrationWarning>
+        <main className="relative flex min-h-screen flex-col transition-colors duration-300" suppressHydrationWarning>
           <Providers>
             {children}
           </Providers>

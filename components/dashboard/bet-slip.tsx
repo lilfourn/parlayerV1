@@ -23,18 +23,17 @@ export function BetSlip() {
   return (
     <Card 
       className={cn(
-        "fixed bottom-4 right-4 w-96 bg-white shadow-lg rounded-lg overflow-hidden",
-        isMaxed && "ring-2 ring-amber-500/50 ring-offset-2 ring-offset-white shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
+        "fixed bottom-4 right-4 w-96 bg-background shadow-lg rounded-lg overflow-hidden",
+        isMaxed && "ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
       )}
     >
       <motion.div 
-        className="relative p-4 border-b bg-gray-50 cursor-pointer select-none"
+        className="relative p-4 border-b bg-background dark:bg-gray-900/50 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
         onClick={(e) => {
           if (!(e.target as HTMLElement).closest('button')) {
             toggleCollapsed();
           }
         }}
-        whileHover={{ backgroundColor: 'rgb(243 244 246)' }}
         transition={{ duration: 0.2 }}
       >
         <AnimatePresence>
@@ -53,7 +52,7 @@ export function BetSlip() {
         </AnimatePresence>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium">Bet Slip</h3>
+            <h3 className="font-medium text-foreground">Bet Slip</h3>
             <p className="text-sm text-muted-foreground">
               {selections.length} Selection{selections.length !== 1 && 's'}
             </p>
@@ -94,7 +93,7 @@ export function BetSlip() {
                   const avgValue = stats?.average ?? 0;
                   const lineScore = selection.projection.attributes.line_score;
                   const diff = avgValue ? ((lineScore - avgValue) / avgValue) * 100 : 0;
-                  const diffColor = diff > 0 ? 'text-green-600' : 'text-red-600';
+                  const diffColor = diff > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                   const projectionId = selection.projection.projection.id;
 
                   return (
@@ -104,7 +103,7 @@ export function BetSlip() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                       transition={{ duration: 0.2, delay: index * 0.05 }}
-                      className="space-y-3 p-3 rounded-lg border bg-gray-50/50"
+                      className="space-y-3 p-3 rounded-lg border bg-gray-50/50 dark:bg-gray-900/50"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -114,7 +113,7 @@ export function BetSlip() {
                             size={32}
                           />
                           <div>
-                            <p className="font-medium">
+                            <p className="font-medium text-foreground">
                               {selection.player?.attributes?.name || 'Unknown Player'}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -163,7 +162,7 @@ export function BetSlip() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, delay: 0.2 }}
-              className="p-4 border-t bg-gray-50 mt-auto"
+              className="p-4 border-t bg-gray-50 dark:bg-gray-800/50 mt-auto"
             >
               <Link href="/dashboard" className="w-full">
                 <Button className="w-full">View in Dashboard</Button>
