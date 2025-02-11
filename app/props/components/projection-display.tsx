@@ -92,6 +92,7 @@ interface ProjectionDisplayProps {
   selectedProjectionId?: string;
   isSelectionMode?: boolean;
   selectedProjections?: Set<string>;
+  onStatTypeChange?: (statType: string | null) => void;
 }
 
 // Helper function to sanitize player data
@@ -162,7 +163,8 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
   onProjectionSelect,
   selectedProjectionId,
   isSelectionMode = false,
-  selectedProjections = new Set()
+  selectedProjections = new Set(),
+  onStatTypeChange
 }: ProjectionDisplayProps) {
   const [selectedLeague, setSelectedLeague] = useState<string>('NBA');
   const [selectedStatType, setSelectedStatType] = useState<string>('');
@@ -261,6 +263,10 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       setSelectedStatType(types[0]);
     }
   }, [selectedLeague, projectionData, selectedStatType]);
+
+  useEffect(() => {
+    onStatTypeChange?.(selectedStatType);
+  }, [selectedStatType, onStatTypeChange]);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -468,7 +474,15 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
           <LeagueNav
             leagues={LEAGUE_CONFIG}
             selectedLeague={selectedLeague}
-            onLeagueSelect={setSelectedLeague}
+            onLeagueSelect={(league: string) => {
+              setSelectedLeague(league);
+              const types = getLeagueStatTypes(projectionData, league);
+              if (types.length > 0) {
+                setSelectedStatType(types[0]);
+              } else {
+                setSelectedStatType('');
+              }
+            }}
           />
 
           {/* Stat Type Filter */}
@@ -479,7 +493,7 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
               onChange={(e) => setSelectedStatType(e.target.value)}
               className="p-2 border rounded-md"
             >
-              {Array.from(statTypes).map((type) => (
+              {statTypes.map((type) => (
                 <option key={type} value={type}>
                   {getStatTypeDisplayName(type)}
                 </option>

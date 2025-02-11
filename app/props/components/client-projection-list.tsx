@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { ApiResponse, ProjectionWithAttributes, NewPlayer, StatAverage } from '@/types/props';
 import type { AnalysisResponse, ProcessedProjection } from '@/app/types/props';
-import { RefreshCw, CheckSquare, Bell } from "lucide-react";
+import { RefreshCw, CheckSquare, Bell, ListPlus } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ProjectionDisplay } from './projection-display';
@@ -34,6 +34,7 @@ export function ClientProjectionList({
   const [selectedProjections, setSelectedProjections] = useState<Set<string>>(new Set());
   const [batchResults, setBatchResults] = useState<Array<{ analysis: AnalysisResponse; projection: ProcessedProjection; isError?: boolean }>>([]);
   const [isBatchAnalyzing, setIsBatchAnalyzing] = useState(false);
+  const [currentStatType, setCurrentStatType] = useState<string | null>(null);
 
   const processProjections = useCallback((data: ApiResponse): ProjectionWithAttributes[] => {
     try {
@@ -231,6 +232,7 @@ export function ClientProjectionList({
     }
 
     setIsBatchAnalyzing(true);
+    setIsSelectionMode(false); // Exit selection mode
     
     // Show starting toast with loading state
     toast.promise(
@@ -299,6 +301,45 @@ export function ClientProjectionList({
     );
   };
 
+  const handleClearResults = useCallback(() => {
+    setBatchResults([]);
+    setSelectedProjections(new Set());
+  }, []);
+
+  const handleProjectionSelect = useCallback((projectionId: string) => {
+    setSelectedProjections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(projectionId)) {
+        newSet.delete(projectionId);
+      } else {
+        newSet.add(projectionId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    const allProjectionIds = batchResults
+      .map(result => result.projection.id)
+      .filter((id): id is string => id != null);
+    setSelectedProjections(new Set(allProjectionIds));
+  }, [batchResults]);
+
+  const handleUnselectAll = useCallback(() => {
+    setSelectedProjections(new Set());
+  }, []);
+
+  const handleSelectAllForCurrentStat = useCallback(() => {
+    if (!currentStatType) return;
+    
+    const projectionsForStat = projectionData.filter(
+      p => p.projection.attributes.stat_type === currentStatType
+    );
+    
+    const projectionIds = projectionsForStat.map(p => p.projection.id);
+    setSelectedProjections(new Set(projectionIds));
+  }, [currentStatType, projectionData]);
+
   return (
     <div className="space-y-6">
       {error && (
@@ -338,14 +379,25 @@ export function ClientProjectionList({
             {isSelectionMode ? "Exit Selection" : "Select Multiple"}
           </Button>
           {isSelectionMode && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleBatchAnalyze}
-              disabled={isBatchAnalyzing || selectedProjections.size === 0}
-            >
-              {isBatchAnalyzing ? "Analyzing..." : "Analyze Selected"}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAllForCurrentStat}
+                disabled={!currentStatType}
+              >
+                <ListPlus className="h-4 w-4 mr-2" />
+                Select All {currentStatType}
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleBatchAnalyze}
+                disabled={isBatchAnalyzing || selectedProjections.size === 0}
+              >
+                {isBatchAnalyzing ? "Analyzing..." : "Analyze Selected"}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -362,6 +414,7 @@ export function ClientProjectionList({
         }}
         isSelectionMode={isSelectionMode}
         selectedProjections={selectedProjections}
+        onStatTypeChange={(statType: string | null) => setCurrentStatType(statType)}
       />
 
       <ProjectionDialog 
@@ -377,9 +430,10 @@ export function ClientProjectionList({
           id="batch-analysis-results" 
           className="mt-8 scroll-mt-24" // Add padding for smooth scroll
         >
-          <BatchAnalysisResults
+          <BatchAnalysisResults 
             results={batchResults}
             isAnalyzing={isBatchAnalyzing}
+            onClearResults={handleClearResults}
           />
         </div>
       )}

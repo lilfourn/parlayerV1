@@ -6,7 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AnalysisResponse, ProcessedProjection } from '@/app/types/props';
 import { cn } from '@/lib/utils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface BatchAnalysisResultsProps {
   results: Array<{
@@ -15,70 +16,107 @@ interface BatchAnalysisResultsProps {
     isError?: boolean;
   }>;
   isAnalyzing: boolean;
+  onClearResults?: () => void;
 }
 
-function getRecommendationColor(recommendation?: string) {
-  switch (recommendation?.toLowerCase()) {
-    case 'over':
-      return 'text-green-500 dark:text-green-400';
-    case 'under':
-      return 'text-red-500 dark:text-red-400';
-    default:
-      return 'text-yellow-500 dark:text-yellow-400'; // neutral or undefined
+function getRecommendationColor(recommendation: string | null | undefined): string {
+  const normalizedRecommendation = recommendation?.toLowerCase() ?? '';
+  
+  if (['strong_over', 'lean_over', 'over'].includes(normalizedRecommendation)) {
+    return 'text-green-500 dark:text-green-400';
   }
+  if (['strong_under', 'lean_under', 'under'].includes(normalizedRecommendation)) {
+    return 'text-red-500 dark:text-red-400';
+  }
+  return 'text-yellow-500 dark:text-yellow-400'; // neutral or undefined
 }
 
-function getConfidenceIndicator(confidence: number) {
+function getConfidenceIndicator(confidence: number): string {
   if (confidence >= 0.8) return '🟢 High';
   if (confidence >= 0.5) return '🟡 Medium';
   return '🔴 Low';
 }
 
-export function BatchAnalysisResults({ results, isAnalyzing }: BatchAnalysisResultsProps) {
+export function BatchAnalysisResults({ 
+  results, 
+  isAnalyzing, 
+  onClearResults,
+}: BatchAnalysisResultsProps) {
   // Sort results by confidence (highest to lowest)
   const sortedResults = [...results].sort((a, b) => 
     (b.analysis.confidence || 0) - (a.analysis.confidence || 0)
   );
 
+  // Helper function to safely get display name
+  const getDisplayName = (projection: ProcessedProjection): string => {
+    return projection.player?.attributes.display_name || 'Unknown Player';
+  };
+
+  // Helper function to safely get stat info
+  const getStatInfo = (projection: ProcessedProjection): string => {
+    const statName = projection.projection.attributes.stat_display_name || 'Unknown Stat';
+    const lineScore = projection.projection.attributes.line_score || 0;
+    return `${statName} - ${lineScore}`;
+  };
+
+  // Helper function to safely format recommendation
+  const formatRecommendation = (recommendation: string | null | undefined): string => {
+    return recommendation?.toUpperCase() || 'NEUTRAL';
+  };
+
   return (
     <div className="space-y-4 w-full max-w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <h2 className="text-2xl font-bold">Batch Analysis Results</h2>
-        <span className="text-sm text-muted-foreground">
-          {results.length} projections analyzed
-        </span>
+        <div className="flex items-center gap-3 self-end">
+          <span className="text-sm text-muted-foreground">
+            {results.length} projections analyzed
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive gap-2"
+              onClick={onClearResults}
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Results
+            </Button>
+          </div>
+        </div>
       </div>
       
       <ScrollArea className="h-[calc(100vh-12rem)] w-full rounded-md border">
         <div className="grid gap-4 p-4">
           {sortedResults.map(({ analysis, projection, isError }) => (
             <Card 
-              key={projection.id}
+              key={projection.projection.id}
               className={cn(
-                "transition-all duration-200 hover:shadow-md w-full max-w-full",
-                isError ? "border-destructive/50" : "border-border"
+                "transition-all duration-200 hover:shadow-md w-full max-w-full group",
+                isError ? "border-destructive/50" : "border-border",
+                "relative"
               )}
             >
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <CardTitle className="text-lg truncate">
-                    {projection.player?.attributes.display_name || 'Unknown Player'}
+                    {getDisplayName(projection)}
                   </CardTitle>
                   <span className={cn(
                     "text-sm font-medium whitespace-nowrap",
                     getRecommendationColor(analysis.recommendation)
                   )}>
-                    {analysis.recommendation?.toUpperCase() || 'NEUTRAL'}
+                    {formatRecommendation(analysis.recommendation)}
                   </span>
                 </div>
                 <CardDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="truncate">
-                    {projection.projection.attributes.stat_display_name} - {projection.projection.attributes.line_score}
+                    {getStatInfo(projection)}
                   </span>
                   <span className="text-sm font-medium whitespace-nowrap">
-                    Confidence: {getConfidenceIndicator(analysis.confidence)}
+                    Confidence: {getConfidenceIndicator(analysis.confidence || 0)}
                     <span className="ml-2 text-xs opacity-75">
-                      ({Math.round(analysis.confidence * 100)}%)
+                      ({Math.round((analysis.confidence || 0) * 100)}%)
                     </span>
                   </span>
                 </CardDescription>
