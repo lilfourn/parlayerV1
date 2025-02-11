@@ -6,13 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/app/props/components/player-avatar";
-import { TrendingUp, Clock, Calendar, Loader2, ChevronUp, ChevronDown, Minus, Sparkles } from "lucide-react";
+import { TrendingUp, Clock, Calendar, Loader2, ChevronUp, ChevronDown, Minus, Sparkles, BarChart2 } from "lucide-react";
 import type { ProcessedProjection, AnalysisResponse, ProjectionWithAttributes } from '@/app/types/props';
 import { useToast } from "@/components/ui/use-toast";
 import { analyzeProjection } from '@/app/actions';
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from './error-boundary';
-import { AnalysisResults } from './analysis-results';
+import { AnalysisResult } from "./analysis-result";
 import { useBetSlipStore } from '@/app/props/stores/bet-slip-store';
 import { BetSlip } from '@/components/dashboard/bet-slip';
 
@@ -31,11 +31,16 @@ interface ProjectionDialogProps {
   onClose: () => void;
 }
 
+interface ProjectionDialogState {
+  isAnalyzing: boolean;
+  error?: string;
+  analysis?: AnalysisResponse;
+}
+
 export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const [state, setState] = useState<ProjectionDialogState>({
+    isAnalyzing: false
+  });
   const { addSelection, hasSelection, getSelectionType } = useBetSlipStore();
   const { toast } = useToast();
 
@@ -64,65 +69,20 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     return formatDate(dateString);
   };
 
-  const handleGetMoreInfo = async () => {
-    if (!projection) return;
-    
-    try {
-      setIsLoading(true);
-      const analysis: AnalysisResponse = await analyzeProjection(projection);
-      setAnalysis(analysis);
-      toast({
-        title: "Analysis Complete",
-        description: "AI analysis has been generated for this projection.",
-      });
-    } catch (error) {
-      toast({
-        title: "Analysis Failed",
-        description: "Unable to analyze the projection at this time.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleAnalyze = async () => {
+    setState(prev => ({ ...prev, isAnalyzing: true, error: undefined }));
     try {
-      console.log('Starting analysis request:', {
-        player: {
-          name: projection.player?.attributes.display_name,
-          team: projection.player?.attributes.team,
-          attributes: projection.player?.attributes
-        },
-        projection: {
-          ...projection.projection.attributes,
-          relationships: projection.projection.relationships
-        },
-        stats: {
-          season_average: projection.statAverage?.attributes.average,
-          recent_average: projection.statAverage?.attributes.last_n_average,
-          trend: projection.statAverage?.attributes.trend,
-          recent_games: projection.statAverage?.attributes.recent_games,
-          percentage_diff: projection.percentageDiff
-        }
-      });
-
-      setIsAnalyzing(true);
-      const analysis: AnalysisResponse = await analyzeProjection(projection);
+      const analysis = await analyzeProjection(projection);
       
-      console.log('Analysis completed successfully:', {
-        hasResult: !!analysis,
-        confidence: analysis?.confidence,
-        recommendation: analysis?.recommendation,
-        timestamp: new Date().toISOString()
-      });
-
       if (!analysis) {
-        throw new Error('No analysis result received');
+        throw new Error('No analysis data received');
       }
 
-      setAnalysis(analysis);
-      setError(null);
+      setState({
+        isAnalyzing: false,
+        analysis
+      });
+
       toast({
         title: 'Analysis Complete',
         description: 'The projection analysis has been updated.',
@@ -134,14 +94,17 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
         errorMessage: error instanceof Error ? error.message : 'Unknown error'
       });
 
-      setError(error instanceof Error ? error : new Error('Failed to analyze projection'));
+      setState(prev => ({
+        ...prev,
+        isAnalyzing: false,
+        error: error instanceof Error ? error.message : 'Failed to analyze projection'
+      }));
+
       toast({
+        variant: 'destructive',
         title: 'Analysis Failed',
         description: error instanceof Error ? error.message : 'Failed to analyze projection',
-        variant: 'destructive',
       });
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -195,9 +158,11 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   };
 
   const handleClose = () => {
-    setAnalysis(null);
-    setError(null);
-    setIsAnalyzing(false);
+    setState({
+      isAnalyzing: false,
+      error: undefined,
+      analysis: undefined
+    });
     onClose();
   };
 
@@ -324,21 +289,21 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
         </div>
 
         {/* Actions */}
-        {!analysis && !error && (
+        {!state.analysis && !state.error && (
           <div className="flex justify-center">
             <Button
               onClick={handleAnalyze}
-              disabled={isAnalyzing}
+              disabled={state.isAnalyzing}
               className="w-full sm:w-auto"
             >
-              {isAnalyzing ? (
+              {state.isAnalyzing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Analyzing...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <BarChart2 className="mr-2 h-4 w-4" />
                   Get AI Analysis
                 </>
               )}
@@ -347,20 +312,20 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
         )}
 
         {/* Analysis Results */}
-        {analysis && (
+        {state.analysis && (
           <ErrorBoundary fallback={<AnalysisErrorDisplay />}>
-            <AnalysisResults 
-              analysis={analysis} 
+            <AnalysisResult 
+              analysis={state.analysis} 
               projection={projection}
               onReanalyze={handleAnalyze}
-              isAnalyzing={isAnalyzing}
+              isAnalyzing={state.isAnalyzing}
             />
           </ErrorBoundary>
         )}
-        {error && (
+        {state.error && (
           <Card className="border-destructive">
             <CardContent className="pt-6 text-destructive">
-              {error.message}
+              {state.error}
             </CardContent>
           </Card>
         )}

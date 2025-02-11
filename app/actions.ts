@@ -3,6 +3,10 @@
 import { ProcessedProjection, AnalysisResponse } from '@/app/types/props';
 
 export async function analyzeProjection(projection: ProcessedProjection): Promise<AnalysisResponse> {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    throw new Error('NEXT_PUBLIC_APP_URL is not configured');
+  }
+
   try {
     console.log('Analyzing projection:', {
       player: {
@@ -36,48 +40,34 @@ export async function analyzeProjection(projection: ProcessedProjection): Promis
       body: JSON.stringify({ projection }),
     });
 
-    let analysis: AnalysisResponse;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || response.statusText;
+      throw new Error(`Analysis failed: ${errorMessage}`);
+    }
+
+    const responseData = await response.json();
     
-    try {
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        console.error('API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData,
-          timestamp: new Date().toISOString()
-        });
-
-        if (response.status === 401) {
-          throw new Error('API key is missing or invalid. Please check your PERPLEXITY_API_KEY environment variable.');
-        }
-
-        // If we got a response with error details, include them in the error message
-        const errorMessage = responseData?.error || 'Failed to analyze projection';
-        throw new Error(errorMessage);
-      }
-
-      analysis = responseData;
-    } catch (parseError) {
-      console.error('Response parsing error:', {
-        error: parseError,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error('Failed to parse analysis response');
+    if (!responseData.success || !responseData.data) {
+      throw new Error('Invalid analysis response format');
     }
-    if (analysis) {
-      console.log('Analysis completed:', {
-        confidence: analysis.confidence,
-        recommendation: analysis.recommendation,
-        risk_level: analysis.risk_level,
-        timestamp: new Date().toISOString()
-      });
-    }
+
+    const analysis = responseData.data;
+
+    console.log('Analysis completed:', {
+      confidence: analysis.confidence,
+      recommendation: analysis.recommendation,
+      risk_level: analysis.risk_level,
+      timestamp: new Date().toISOString()
+    });
 
     return analysis;
   } catch (error) {
-    console.error('Analysis Error:', error);
+    console.error('Analysis Error:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }

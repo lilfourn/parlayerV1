@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
     const content = response.choices[0]?.message?.content;
     if (!content) {
       console.error('Empty response from API');
-      return NextResponse.json(createFallbackAnalysis('No content in API response'));
+      return NextResponse.json({ success: false, data: createFallbackAnalysis('No content in API response') });
     }
 
     console.log('Raw API response:', content);
@@ -211,10 +211,10 @@ export async function POST(req: NextRequest) {
         };
 
         console.log('Created sanitized analysis:', sanitizedAnalysis);
-        return NextResponse.json(sanitizedAnalysis);
+        return NextResponse.json({ success: true, data: sanitizedAnalysis });
       }
 
-      return NextResponse.json(parsedData);
+      return NextResponse.json({ success: true, data: parsedData });
     } catch (parseError) {
       console.error('Failed to parse API response:', {
         error: parseError,
@@ -229,14 +229,14 @@ export async function POST(req: NextRequest) {
           const extractedData = JSON.parse(jsonMatch[0]);
           if (isValidAnalysisResponse(extractedData)) {
             console.log('Successfully extracted JSON using regex');
-            return NextResponse.json(extractedData);
+            return NextResponse.json({ success: true, data: extractedData });
           }
         } catch (secondaryError) {
           console.error('Failed to parse extracted JSON:', secondaryError);
         }
       }
 
-      return NextResponse.json(createFallbackAnalysis('Failed to parse API response'));
+      return NextResponse.json({ success: false, data: createFallbackAnalysis('Failed to parse API response') });
     }
 
   } catch (error) {
@@ -245,9 +245,10 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString(),
       message: error instanceof Error ? error.message : 'Unknown error'
     });
-    return NextResponse.json(createFallbackAnalysis(
-      error instanceof Error ? error.message : 'Failed to process request'
-    ));
+    return NextResponse.json({ 
+      success: false, 
+      data: createFallbackAnalysis(error instanceof Error ? error.message : 'Failed to process request')
+    });
   }
 }
 

@@ -11,6 +11,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/python/:path*',
+        destination: 'http://localhost:5328/api/:path*'
+      }
+    ]
+  }
 }
 
 module.exports = nextConfig

@@ -149,6 +149,21 @@ export const isValidProcessedProjection = (data: any): data is ProcessedProjecti
   );
 }
 
+export interface Factor {
+  name: string;
+  impact: number; // -1 to 1 scale
+  description: string;
+}
+
+export interface PerplexityAnalysis {
+  factors: Factor[];
+  confidence: number; // 0 to 1 scale
+  recommendation: 'over' | 'under' | 'neutral';
+  risk_level: 'low' | 'medium' | 'high';
+  timestamp: string;
+  raw_analysis?: string;
+}
+
 export interface AnalysisResponse {
   confidence: number;
   recommendation: 'strong_over' | 'lean_over' | 'neutral' | 'lean_under' | 'strong_under';
@@ -159,6 +174,12 @@ export interface AnalysisResponse {
   }>;
   summary: string;
   risk_level: 'low' | 'medium' | 'high';
+}
+
+export interface PerplexityAnalysisResponse {
+  success: boolean;
+  data?: PerplexityAnalysis;
+  error?: string;
 }
 
 export const isValidAnalysisResponse = (data: any): data is AnalysisResponse => {
