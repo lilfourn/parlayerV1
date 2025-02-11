@@ -52,49 +52,36 @@ export function BetSlip() {
           )}
         </AnimatePresence>
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="font-semibold">Selected Projections ({selections.length})</h3>
-            {selections.length >= 2 && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                Payout Multiplier: <span className="text-green-600 font-medium">{payoutMultiplier}x</span>
-              </p>
-            )}
+          <div>
+            <h3 className="font-medium">Bet Slip</h3>
+            <p className="text-sm text-muted-foreground">
+              {selections.length} Selection{selections.length !== 1 && 's'}
+            </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              clearSelections();
-            }}
-            className="h-8 px-2 text-muted-foreground hover:text-foreground"
-          >
-            Clear all
-          </Button>
+          {selections.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSelections}
+              className="h-8"
+            >
+              Clear All
+            </Button>
+          )}
         </div>
       </motion.div>
-
-      <AnimatePresence initial={false}>
+      <AnimatePresence>
         {!isCollapsed && (
-          <motion.div 
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ 
-              height: 'min(calc(100vh - 200px), 400px)', 
-              opacity: 1
-            }}
-            exit={{ 
-              height: 0,
-              opacity: 0
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30
-            }}
-            className="flex flex-col overflow-hidden"
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col"
+            style={{ overflow: 'hidden' }}
           >
-            <ScrollArea className="flex-1">
-              <motion.div 
+            <ScrollArea className="flex-1 max-h-[60vh]">
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -108,10 +95,11 @@ export function BetSlip() {
                   const lineScore = selection.projection.attributes.line_score;
                   const diff = avgValue ? ((lineScore - avgValue) / avgValue) * 100 : 0;
                   const diffColor = diff > 0 ? 'text-green-600' : 'text-red-600';
+                  const projectionId = selection.projection.projection.id;
 
                   return (
                     <motion.div
-                      key={selection.projection.id}
+                      key={projectionId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
@@ -139,7 +127,7 @@ export function BetSlip() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeSelection(selection.projection.id)}
+                          onClick={() => removeSelection(projectionId)}
                           className="h-8 w-8 p-0"
                         >
                           <X className="h-4 w-4" />
@@ -159,6 +147,10 @@ export function BetSlip() {
                         <div className="flex justify-between text-muted-foreground">
                           <span>Start Time</span>
                           <span>{format(startTime, 'MMM d, h:mm a')}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Selection</span>
+                          <span className="font-medium text-primary">{selection.selectionType === 'more' ? 'More' : 'Less'}</span>
                         </div>
                       </div>
                     </motion.div>

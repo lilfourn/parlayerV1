@@ -37,6 +37,7 @@ export function SelectedProjections() {
             <TableHead>League</TableHead>
             <TableHead>Stat Type</TableHead>
             <TableHead>Line</TableHead>
+            <TableHead>Selection</TableHead>
             <TableHead>Average</TableHead>
             <TableHead>Diff %</TableHead>
             <TableHead>Start Time</TableHead>
@@ -56,7 +57,7 @@ export function SelectedProjections() {
             const updatedAt = new Date(selection.projection.attributes.updated_at);
 
             return (
-              <TableRow key={selection.projection.id}>
+              <TableRow key={selection.projection.projection.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <PlayerAvatar 
@@ -74,6 +75,11 @@ export function SelectedProjections() {
                 </TableCell>
                 <TableCell>{selection.projection.attributes.stat_type}</TableCell>
                 <TableCell className="font-medium">{lineScore}</TableCell>
+                <TableCell>
+                  <span className={selection.selectionType === 'more' ? 'text-green-600' : 'text-red-600'}>
+                    {selection.selectionType === 'more' ? 'More' : 'Less'}
+                  </span>
+                </TableCell>
                 <TableCell>{avgValue > 0 ? avgValue.toFixed(1) : 'N/A'}</TableCell>
                 <TableCell className={avgValue > 0 ? diffColor : ''}>
                   {avgValue > 0 ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : 'N/A'}
@@ -87,7 +93,7 @@ export function SelectedProjections() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeSelection(selection.projection.id)}
+                    onClick={() => removeSelection(selection.projection.projection.id)}
                     className="h-8 w-8 p-0"
                   >
                     <X className="h-4 w-4" />

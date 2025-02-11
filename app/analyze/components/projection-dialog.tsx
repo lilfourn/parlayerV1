@@ -36,7 +36,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const { addSelection, hasSelection } = useBetSlipStore();
+  const { addSelection, hasSelection, getSelectionType } = useBetSlipStore();
   const { toast } = useToast();
 
   if (!projection) return null;
@@ -153,54 +153,41 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
         type: "projection" as const,
         id: processed.projection.id,
         attributes: {
-          adjusted_odds: null,  // Default value since it's missing
-          board_time: processed.projection.attributes.start_time, // Using start_time as board_time
-          custom_image: null,  // Default value since it's missing
+          adjusted_odds: null,
+          board_time: processed.projection.attributes.start_time,
+          custom_image: null,
           description: processed.projection.attributes.description,
-          end_time: null,  // Default value since it's missing
-          flash_sale_line_score: null,  // Default value since it's missing
+          end_time: null,
+          flash_sale_line_score: null,
           game_id: processed.projection.attributes.game_id,
-          hr_20: processed.projection.attributes.hr_20,
-          in_game: processed.projection.attributes.in_game,
-          is_live: processed.projection.attributes.is_live,
-          is_promo: processed.projection.attributes.is_promo,
+          hr_20: false,
+          in_game: false,
+          is_live: false,
+          is_promo: false,
           line_score: processed.projection.attributes.line_score,
-          line_movement: processed.projection.attributes.line_movement,
-          odds_type: processed.projection.attributes.odds_type,
-          projection_type: processed.projection.attributes.stat_type, // Using stat_type as projection_type
-          rank: 0,  // Default value since it's missing
-          refundable: processed.projection.attributes.refundable,
+          odds_type: "standard",
+          projection_type: "standard",
+          rank: 0, // Added required field
+          refundable: false, // Added required field
           start_time: processed.projection.attributes.start_time,
-          stat_display_name: processed.projection.attributes.stat_display_name,
           stat_type: processed.projection.attributes.stat_type,
+          stat_display_name: processed.projection.attributes.stat_display_name, // Added required field
           status: processed.projection.attributes.status,
-          tv_channel: processed.projection.attributes.tv_channel,
+          tv_channel: null, // Added required field
           updated_at: processed.projection.attributes.updated_at
         },
-        relationships: {
-          ...processed.projection.relationships,
-          duration: processed.projection.relationships.duration,
-          projection_type: processed.projection.relationships.projection_type,
-          score: processed.projection.relationships.score,
-          stat_type: processed.projection.relationships.stat_type,
-          new_player: processed.projection.relationships.new_player,
-          stat_average: processed.projection.relationships.stat_average,
-          league: processed.projection.relationships.league
-        }
+        relationships: processed.projection.relationships
       },
       player: processed.player,
-      stats: processed.statAverage
+      stats: processed.statAverage, // Fixed to use correct property name
+      attributes: processed.projection.attributes,
+      relationships: processed.projection.relationships
     };
   }
 
-  const handleAddToBetSlip = (type: 'more' | 'less') => {
-    if (!projection) return;
-    const projectionWithAttributes = convertToProjectionWithAttributes(projection);
-    const selection = {
-      ...projectionWithAttributes,
-      selectionType: type
-    };
-    addSelection(selection);
+  const addToBetSlip = (type: 'more' | 'less') => {
+    const selection = convertToProjectionWithAttributes(projection);
+    addSelection(selection, type);
     toast({
       title: `Added ${type === 'more' ? 'More' : 'Less'} to Slip`,
       description: "The prop has been added to your bet slip.",
@@ -407,24 +394,30 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
                 {projection.projection.attributes.description}
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => handleAddToBetSlip('more')}
-              disabled={hasSelection(projection.projection.id)}
-              className="gap-2"
-            >
-              <ChevronUp className="h-4 w-4" />
-              More
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleAddToBetSlip('less')}
-              disabled={hasSelection(projection.projection.id)}
-              className="gap-2"
-            >
-              <ChevronDown className="h-4 w-4" />
-              Less
-            </Button>
+            <div className="flex items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex-1",
+                  getSelectionType(projection.projection.id) === 'more' && "bg-primary text-primary-foreground"
+                )}
+                onClick={() => addToBetSlip('more')}
+                disabled={hasSelection(projection.projection.id) && getSelectionType(projection.projection.id) !== 'more'}
+              >
+                More
+              </Button>
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex-1",
+                  getSelectionType(projection.projection.id) === 'less' && "bg-primary text-primary-foreground"
+                )}
+                onClick={() => addToBetSlip('less')}
+                disabled={hasSelection(projection.projection.id) && getSelectionType(projection.projection.id) !== 'less'}
+              >
+                Less
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
         {renderContent()}

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { EventOdds } from './event-odds';
 import { TopPlayerOdds } from './top-player-odds';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Event {
   id: string;
@@ -19,9 +19,10 @@ interface Event {
 
 interface EventsListProps {
   selectedSport?: string;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
-export function EventsList({ selectedSport }: EventsListProps) {
+export function EventsList({ selectedSport, onLoadingChange }: EventsListProps) {
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [oddsData, setOddsData] = useState<{ [key: string]: any }>({});
   const [loadingOdds, setLoadingOdds] = useState<{ [key: string]: boolean }>({});
@@ -34,6 +35,7 @@ export function EventsList({ selectedSport }: EventsListProps) {
       if (!selectedSport) return;
       
       setIsLoading(true);
+      onLoadingChange?.(true);
       try {
         const response = await fetch(`/api/events?sport=${selectedSport}`);
         if (!response.ok) {
@@ -46,11 +48,12 @@ export function EventsList({ selectedSport }: EventsListProps) {
         setEvents([]); 
       } finally {
         setIsLoading(false);
+        onLoadingChange?.(false);
       }
     }
 
     fetchEvents();
-  }, [selectedSport]);
+  }, [selectedSport, onLoadingChange]);
 
   if (!selectedSport) {
     return null;
@@ -58,9 +61,12 @@ export function EventsList({ selectedSport }: EventsListProps) {
 
   if (isLoading) {
     return (
-      <Card className="p-8">
-        <Skeleton className="h-[200px] w-full" />
-      </Card>
+      <div className="flex items-center justify-center p-8">
+        <div className="relative">
+          <div className="absolute inset-0 animate-pulse-slow blur-xl bg-amber-500/20 rounded-full" />
+          <Spinner size="lg" className="relative" />
+        </div>
+      </div>
     );
   }
 
@@ -144,8 +150,8 @@ export function EventsList({ selectedSport }: EventsListProps) {
             </Button>
 
             {isLoading && (
-              <div className="mt-4 px-4">
-                <Skeleton className="h-[150px] w-full" />
+              <div className="flex items-center justify-center p-4">
+                <Spinner size="md" />
               </div>
             )}
 

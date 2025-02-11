@@ -86,6 +86,8 @@ export interface ApiResponse {
 }
 
 export interface ProjectionWithAttributes {
+  attributes: any;
+  relationships: any;
   id(id: any): unknown;
   projection: Projection;
   player: NewPlayer | null;

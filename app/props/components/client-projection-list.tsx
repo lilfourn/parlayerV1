@@ -80,6 +80,8 @@ export function ClientProjectionList({
             },
             player: player || null,
             stats: stats || null,
+            attributes: undefined,
+            relationships: undefined
           };
           
           return projectionWithAttributes;
@@ -145,41 +147,47 @@ export function ClientProjectionList({
   const refreshControlsRef = useRef<ReturnType<typeof ReactDOM.createRoot> | null>(null);
 
   useEffect(() => {
-    // Mount refresh controls
-    const refreshContainer = document.getElementById('refresh-controls');
-    if (refreshContainer && !refreshControlsRef.current) {
-      refreshControlsRef.current = ReactDOM.createRoot(refreshContainer);
-    }
+    let isMounted = true;
 
-    // Only render if we have a root
-    if (refreshControlsRef.current) {
-      const controls = (
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-gray-500">
-            Last updated: {lastRefreshed.toLocaleTimeString()}
-          </div>
-          <Button 
-            onClick={refreshProjections} 
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      );
-      refreshControlsRef.current.render(controls);
-    }
-
-    // Cleanup function
-    return () => {
-      // Only unmount if we're actually unmounting the component
-      if (refreshControlsRef.current && !document.getElementById('refresh-controls')) {
-        refreshControlsRef.current.unmount();
-        refreshControlsRef.current = null;
+    const renderControls = () => {
+      const refreshContainer = document.getElementById('refresh-controls');
+      if (refreshContainer && !refreshControlsRef.current && isMounted) {
+        refreshControlsRef.current = ReactDOM.createRoot(refreshContainer);
       }
+
+      if (refreshControlsRef.current && isMounted) {
+        const controls = (
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-500">
+              Last updated: {lastRefreshed.toLocaleTimeString()}
+            </div>
+            <Button 
+              onClick={refreshProjections} 
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        );
+        refreshControlsRef.current.render(controls);
+      }
+    };
+
+    renderControls();
+
+    return () => {
+      isMounted = false;
+      // Use a small timeout to ensure we're not unmounting during render
+      setTimeout(() => {
+        if (refreshControlsRef.current) {
+          refreshControlsRef.current.unmount();
+          refreshControlsRef.current = null;
+        }
+      }, 0);
     };
   }, [isLoading, lastRefreshed, refreshProjections]);
 
@@ -234,11 +242,12 @@ export function ClientProjectionList({
       <ProjectionDisplay 
         projectionData={projectionData} 
         onProjectionSelect={(projection) => {
-          // Create a new object with the correct interface
-          const projectionWithId = {
+          const projectionWithId: ProjectionWithAttributes = {
             ...projection,
-            id: (id: any): unknown => projection.projection.id
-          } satisfies ProjectionWithAttributes;
+            attributes: projection.projection.attributes,
+            relationships: projection.projection.relationships,
+            id: () => projection.projection.id
+          };
           
           setSelectedProjection(projectionWithId);
           setIsDialogOpen(true);

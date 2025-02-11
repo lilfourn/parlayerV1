@@ -21,8 +21,8 @@ export function ProjectionSelection({ projection }: ProjectionSelectionProps) {
 
   const isSelected = hasSelection(projection.projection.id);
 
-  const handleAddProp = () => {
-    addSelection(projection);
+  const handleAddProp = (selectionType: 'more' | 'less') => {
+    addSelection(projection, selectionType);
   };
 
   return (
@@ -53,15 +53,26 @@ export function ProjectionSelection({ projection }: ProjectionSelectionProps) {
             </div>
           )}
 
-          <Button
-            className="w-full max-w-sm py-6 text-lg gap-2"
-            variant="outline"
-            onClick={handleAddProp}
-            disabled={isSelected}
-          >
-            <Plus className="h-5 w-5" />
-            {isSelected ? 'Added to Slip' : 'Add Prop'}
-          </Button>
+          <div className="flex flex-col w-full max-w-sm space-y-2">
+            <Button
+              className="w-full py-4 text-lg gap-2"
+              variant="outline"
+              onClick={() => handleAddProp('more')}
+              disabled={isSelected}
+            >
+              <ChevronUp className="h-5 w-5" />
+              Over {lineScore}
+            </Button>
+            <Button
+              className="w-full py-4 text-lg gap-2"
+              variant="outline"
+              onClick={() => handleAddProp('less')}
+              disabled={isSelected}
+            >
+              <ChevronDown className="h-5 w-5" />
+              Under {lineScore}
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

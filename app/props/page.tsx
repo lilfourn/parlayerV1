@@ -6,6 +6,7 @@ import { ClientProjectionList } from './components/client-projection-list';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrendingUp } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/spinner';
 
 async function getProjections(): Promise<ApiResponse> {
   const response = await fetch('http://localhost:3000/api/projections', {
@@ -42,35 +43,35 @@ export default function Props() {
 
   if (error) {
     return (
-      <div className="flex h-screen overflow-hidden">
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="flex-1 relative">
-            <SidebarTrigger />
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-red-600">Error Loading Projections</h1>
-              <p className="mt-2">{error}</p>
-              <p className="mt-2 text-sm text-gray-600">Please wait a moment and try refreshing the page.</p>
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-1 relative">
+          <div className="absolute inset-0 bg-gray-50/90 backdrop-blur-sm">
+            <div className="flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
+              <div className="w-full max-w-lg mx-auto">
+                <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 transition-all duration-200 ease-in-out hover:shadow-md">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-red-600">Error Loading Projections</h2>
+                    <p className="text-base sm:text-lg text-gray-700">{error}</p>
+                    <p className="text-sm sm:text-base text-gray-500">
+                      Please wait a moment and try refreshing the page.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </main>
-        </SidebarProvider>
-      </div>
+          </div>
+        </div>
+      </SidebarProvider>
     );
   }
 
   if (!initialData) {
     return (
-      <div className="flex h-screen overflow-hidden">
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="flex-1 relative">
-            <SidebarTrigger />
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-600">Loading...</h1>
-            </div>
-          </main>
-        </SidebarProvider>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <LoadingScreen />
+      </SidebarProvider>
     );
   }
 

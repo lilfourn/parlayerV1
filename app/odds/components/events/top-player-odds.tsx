@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { MARKETS_CONFIG } from '@/app/odds/constants/markets';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Market {
   key: string;
@@ -123,8 +124,11 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
 
   if (loading) {
     return (
-      <Card className="mt-4 p-4 text-center">
-        Loading player props...
+      <Card className="mt-4 p-4">
+        <div className="flex items-center justify-center">
+          <Spinner size="sm" />
+          <span className="ml-3 text-sm text-amber-600/70">Loading player props...</span>
+        </div>
       </Card>
     );
   }
@@ -323,8 +327,11 @@ export function TopPlayerOdds({ eventId, sportKey }: TopPlayerOddsProps) {
 
   if (loading) {
     return (
-      <Card className="mt-2 p-2">
-        <div className="text-sm text-gray-500">Loading top player odds...</div>
+      <Card className="mt-2 p-4">
+        <div className="flex items-center justify-center">
+          <Spinner size="sm" />
+          <span className="ml-3 text-sm text-amber-600/70">Loading top player odds...</span>
+        </div>
       </Card>
     );
   }

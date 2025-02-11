@@ -1,8 +1,8 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { Skeleton } from "@/components/ui/skeleton";
 import { memo, useCallback, useEffect, useState } from 'react';
+
 interface Sport {
   key: string;
   title: string;
@@ -41,7 +41,6 @@ export const SportsFilter = memo(function SportsFilter({
   selectedSport?: string;
 }) {
   const [sports, setSports] = useState<Sport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const fetchSports = useCallback(async () => {
     try {
@@ -49,7 +48,6 @@ export const SportsFilter = memo(function SportsFilter({
       if (!response.ok) throw new Error('Failed to fetch sports');
       const data = await response.json();
       
-      // Sort sports by title
       const sortedSports = data.sort((a: Sport, b: Sport) => 
         a.title.localeCompare(b.title)
       );
@@ -60,8 +58,6 @@ export const SportsFilter = memo(function SportsFilter({
       })));
     } catch (error) {
       console.error('Error fetching sports:', error);
-    } finally {
-      setIsLoading(false);
     }
   }, [selectedSport]);
 
@@ -69,40 +65,28 @@ export const SportsFilter = memo(function SportsFilter({
     fetchSports();
   }, [fetchSports]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-24" />
-        ))}
-      </div>
-    );
-  }
-
   return (
     <Card>
-    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
-      
-      {sports.map((sport) => (
-        <button
-          key={sport.key}
-          onClick={() => onSportSelect(sport.key)}
-          className={`
-            flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
-            transition-colors duration-200
-            ${
-              selectedSport === sport.key
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'bg-background hover:bg-gray-100 hover:text-blue-600'
-            }
-          `}
-        >
-          <span className="text-base">{sportEmojis[sport.key] || '🎮'}</span>
-          <span>{sport.title}</span>
-        </button>
-      ))}
-      
-    </div>
+      <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+        {sports.map((sport) => (
+          <button
+            key={sport.key}
+            onClick={() => onSportSelect(sport.key)}
+            className={`
+              flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+              transition-colors duration-200
+              ${
+                selectedSport === sport.key
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-background hover:bg-gray-100 hover:text-blue-600'
+              }
+            `}
+          >
+            <span className="text-base">{sportEmojis[sport.key] || '🎮'}</span>
+            <span>{sport.title}</span>
+          </button>
+        ))}
+      </div>
     </Card>
   );
 });
