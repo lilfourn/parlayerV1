@@ -122,7 +122,10 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
               },
               player,
               statAverage,
-              percentageDiff
+              percentageDiff,
+              stat_type: undefined,
+              line_score: undefined,
+              attributes: undefined
             };
 
             if (!isValidProcessedProjection(processedProjection)) {

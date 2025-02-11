@@ -43,6 +43,9 @@
     --sidebar-accent-foreground: 45 10% 10%;
     --sidebar-border: 45 30% 90%;
     --sidebar-ring: 45 100% 50%;
+    --toast-border: hsl(var(--border));
+    --toast-bg: hsl(var(--background));
+    --toast-text: hsl(var(--foreground));
   }
   .dark {
     --background: 0 0% 0%;
@@ -77,6 +80,9 @@
     --sidebar-accent-foreground: 45 10% 100%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 45 80% 50%;
+    --toast-border: hsl(var(--border));
+    --toast-bg: hsl(var(--background));
+    --toast-text: hsl(var(--foreground));
   }
 }
 
@@ -87,4 +93,47 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+[data-sonner-toaster] {
+  @apply fixed top-4 right-4 z-[100] grid gap-2 w-full max-w-xs sm:right-4;
+}
+
+[data-sonner-toast] {
+  @apply pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 pr-8 shadow-lg transition-all;
+  background: var(--toast-bg);
+  border-color: var(--toast-border);
+  color: var(--toast-text);
+}
+
+[data-sonner-toast][data-type="success"] {
+  @apply border-green-500/50 bg-green-500/10;
+}
+
+[data-sonner-toast][data-type="error"] {
+  @apply border-red-500/50 bg-red-500/10;
+}
+
+[data-sonner-toast][data-type="loading"] {
+  @apply border-blue-500/50 bg-blue-500/10;
+}
+
+[data-sonner-toast] [data-icon] {
+  @apply h-4 w-4;
+}
+
+[data-sonner-toast] [data-title] {
+  @apply font-medium text-sm;
+}
+
+[data-sonner-toast] [data-description] {
+  @apply text-sm opacity-90;
+}
+
+[data-sonner-toast] [data-close-button] {
+  @apply absolute right-2 top-2 opacity-0 transition-opacity hover:opacity-100;
+}
+
+[data-sonner-toast] [data-button] {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-xs;
 }

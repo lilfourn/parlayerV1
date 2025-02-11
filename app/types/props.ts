@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 export interface Projection {
   type: 'projection';
   id: string;
@@ -105,6 +107,9 @@ export interface ProcessedProjectionRelationships {
 }
 
 export interface ProcessedProjection {
+  attributes: any;
+  stat_type: ReactNode;
+  line_score: ReactNode;
   id: string | null | undefined;
   projection: {
     id: string;

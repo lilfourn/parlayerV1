@@ -192,6 +192,9 @@ export function ClientProjectionList({
 
     return {
       id: projection.projection.id,
+      attributes: projection.projection.attributes,
+      stat_type: projection.projection.attributes.stat_type,
+      line_score: projection.projection.attributes.line_score,
       projection: {
         id: projection.projection.id,
         type: projection.projection.type,
@@ -211,12 +214,12 @@ export function ClientProjectionList({
           game_id: projection.projection.attributes.game_id,
           updated_at: projection.projection.attributes.updated_at,
           odds_type: projection.projection.attributes.odds_type,
-          line_movement: projection.projection.attributes.line_movement,
+          line_movement: projection.projection.attributes.line_movement
         },
         relationships: projection.projection.relationships
       },
       player: projection.player,
-      statAverage: projection.stats,
+      statAverage: stats,
       percentageDiff: diff
     };
   };
@@ -270,6 +273,9 @@ export function ClientProjectionList({
           toast(
             `Successfully analyzed ${results.length} projections`,
             {
+              description: "Click 'View Results' to see the analysis details",
+              icon: <Bell className="h-4 w-4 text-green-500" />,
+              duration: 5000,
               action: {
                 label: "View Results",
                 onClick: () => {
@@ -279,8 +285,6 @@ export function ClientProjectionList({
                   }
                 },
               },
-              icon: <Bell className="h-4 w-4" />,
-              duration: 5000,
             }
           );
           
