@@ -148,6 +148,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   // Helper function to convert ProcessedProjection to ProjectionWithAttributes
   function convertToProjectionWithAttributes(processed: ProcessedProjection): ProjectionWithAttributes {
     return {
+      id: (id: any) => processed.projection.id,
       projection: {
         type: "projection" as const,
         id: processed.projection.id,
@@ -192,11 +193,16 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
     };
   }
 
-  const handleAddToBetSlip = () => {
+  const handleAddToBetSlip = (type: 'more' | 'less') => {
     if (!projection) return;
-    addSelection(convertToProjectionWithAttributes(projection));
+    const projectionWithAttributes = convertToProjectionWithAttributes(projection);
+    const selection = {
+      ...projectionWithAttributes,
+      selectionType: type
+    };
+    addSelection(selection);
     toast({
-      title: "Prop Added",
+      title: `Added ${type === 'more' ? 'More' : 'Less'} to Slip`,
       description: "The prop has been added to your bet slip.",
     });
   };
@@ -403,10 +409,21 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
             </div>
             <Button 
               variant="outline" 
-              onClick={handleAddToBetSlip}
+              onClick={() => handleAddToBetSlip('more')}
               disabled={hasSelection(projection.projection.id)}
+              className="gap-2"
             >
-              {hasSelection(projection.projection.id) ? 'Added to Slip' : 'Add Prop'}
+              <ChevronUp className="h-4 w-4" />
+              More
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleAddToBetSlip('less')}
+              disabled={hasSelection(projection.projection.id)}
+              className="gap-2"
+            >
+              <ChevronDown className="h-4 w-4" />
+              Less
             </Button>
           </DialogTitle>
         </DialogHeader>

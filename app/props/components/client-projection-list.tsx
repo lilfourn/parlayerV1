@@ -64,7 +64,13 @@ export function ClientProjectionList({
           const statAverageId = projection.relationships.stat_average?.data?.id;
           const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
           
-          return {
+          // Create a type-safe id function that matches the interface exactly
+          const createIdFunction = (projId: string): ((id: any) => unknown) => {
+            return (id: any): unknown => projId;
+          };
+          
+          const projectionWithAttributes: ProjectionWithAttributes = {
+            id: createIdFunction(projection.id),
             projection: {
               ...projection,
               attributes: {
@@ -75,6 +81,8 @@ export function ClientProjectionList({
             player: player || null,
             stats: stats || null,
           };
+          
+          return projectionWithAttributes;
         });
 
       // Sort by difference percentage
@@ -88,7 +96,7 @@ export function ClientProjectionList({
         return getDiffPercentage(b) - getDiffPercentage(a);
       });
 
-      setProjectionData(sortedData);
+      setProjectionData([...sortedData]);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error('Error processing projection data:', err);
@@ -180,32 +188,40 @@ export function ClientProjectionList({
     processProjections(initialData);
   }, [initialData, processProjections]);
 
-  function transformToProcessedProjection(projection: ProjectionWithAttributes): ProcessedProjection {
-    const stats = projection.stats as StatAverage;
-    const avgValue = stats?.attributes?.average ?? 0;
-    const lineScore = projection.projection.attributes.line_score;
-    const diff = avgValue ? ((lineScore - avgValue) / avgValue) * 100 : 0;
+  const transformToProcessedProjection = (projection: ProjectionWithAttributes): ProcessedProjection => {
+    const stats = projection.stats?.attributes;
+    const diff = stats?.average
+      ? ((projection.projection.attributes.line_score - stats.average) / stats.average) * 100
+      : 0;
 
+    // Get the projection id safely
+    const projectionId = projection.id('stat_average');
+    
     return {
       projection: {
         ...projection.projection,
-        type: 'projection',
         relationships: {
           ...projection.projection.relationships,
           new_player: {
-            data: projection.projection.relationships.new_player?.data ?? null
+            data: projection.player ? {
+              type: 'new_player',
+              id: projection.player.id
+            } : null
           },
           stat_average: {
-            data: projection.projection.relationships.stat_average?.data ?? null
+            data: projection.stats ? {
+              type: 'stat_average',
+              id: typeof projectionId === 'string' ? projectionId : projection.projection.id
+            } : null
           },
           league: projection.projection.relationships.league
         }
       },
       player: projection.player,
-      statAverage: stats,
+      statAverage: projection.stats,
       percentageDiff: diff,
     };
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -218,7 +234,13 @@ export function ClientProjectionList({
       <ProjectionDisplay 
         projectionData={projectionData} 
         onProjectionSelect={(projection) => {
-          setSelectedProjection(projection);
+          // Create a new object with the correct interface
+          const projectionWithId = {
+            ...projection,
+            id: (id: any): unknown => projection.projection.id
+          } satisfies ProjectionWithAttributes;
+          
+          setSelectedProjection(projectionWithId);
           setIsDialogOpen(true);
         }}
         selectedProjectionId={selectedProjection?.projection.id}

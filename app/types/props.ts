@@ -86,6 +86,7 @@ export interface ApiResponse {
 }
 
 export interface ProjectionWithAttributes {
+  id(id: any): unknown;
   projection: Projection;
   player: NewPlayer | null;
   stats: StatAverage | null;
