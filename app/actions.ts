@@ -2,6 +2,43 @@
 
 import { ProcessedProjection, AnalysisResponse } from '@/app/types/props';
 
+export async function analyzeBatchProjections(projections: ProcessedProjection[]): Promise<AnalysisResponse[]> {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    throw new Error('NEXT_PUBLIC_APP_URL is not configured');
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/analyze/perplexity/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ projections }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || response.statusText;
+      throw new Error(`Batch analysis failed: ${errorMessage}`);
+    }
+
+    const responseData = await response.json();
+    
+    if (!responseData.success || !Array.isArray(responseData.data)) {
+      throw new Error('Invalid batch analysis response format');
+    }
+
+    return responseData.data;
+  } catch (error) {
+    console.error('Batch Analysis Error:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+    throw error;
+  }
+}
+
 export async function analyzeProjection(projection: ProcessedProjection): Promise<AnalysisResponse> {
   if (!process.env.NEXT_PUBLIC_APP_URL) {
     throw new Error('NEXT_PUBLIC_APP_URL is not configured');

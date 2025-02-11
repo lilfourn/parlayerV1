@@ -2,11 +2,16 @@ import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { Roboto_Mono } from 'next/font/google';
 import { Providers } from './providers';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const robotoMono = Roboto_Mono({
   subsets: ['latin'],
   variable: '--font-roboto-mono',
+});
+
+const inter = Roboto_Mono({
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
@@ -25,6 +30,7 @@ export default function RootLayout({
         <main className="relative flex min-h-screen flex-col transition-colors duration-300" suppressHydrationWarning>
           <Providers>
             {children}
+            <Toaster richColors position="top-right" />
           </Providers>
         </main>
       </body>

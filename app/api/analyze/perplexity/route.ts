@@ -7,10 +7,71 @@ if (!process.env.PERPLEXITY_API_KEY) {
   throw new Error('PERPLEXITY_API_KEY is not defined');
 }
 
-const client = new OpenAI({
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is not defined');
+}
+
+const perplexityClient = new OpenAI({
   apiKey: process.env.PERPLEXITY_API_KEY,
   baseURL: 'https://api.perplexity.ai',
 });
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function tryParseWithOpenAI(rawContent: string): Promise<AnalysisResponse | null> {
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini-2024-07-18',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a JSON format converter. DO NOT analyze or modify the content - your only job is to take the input and format it correctly as a valid AnalysisResponse JSON.
+
+If the input contains an analysis, use those EXACT values - do not modify them.
+If a field is missing or invalid, only then use a reasonable default.
+
+The output MUST follow this structure:
+{
+  "confidence": number between 0 and 1,
+  "recommendation": one of ["strong_over", "lean_over", "neutral", "lean_under", "strong_under"],
+  "key_factors": array of {
+    "factor": string description,
+    "impact": one of ["positive", "negative", "neutral"],
+    "weight": number between 0 and 1
+  },
+  "summary": string,
+  "risk_level": one of ["low", "medium", "high"]
+}
+
+IMPORTANT: DO NOT re-analyze or change the meaning of the content. Only fix the format.
+Respond ONLY with the valid JSON object.`
+        },
+        {
+          role: 'user',
+          content: `Convert this content into a valid AnalysisResponse format WITHOUT changing its meaning:\n${rawContent}`
+        }
+      ],
+      temperature: 0,  // Set to 0 for most deterministic formatting
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const parsedData = JSON.parse(content);
+    if (!isValidAnalysisResponse(parsedData)) {
+      console.error('OpenAI format conversion failed validation:', parsedData);
+      return null;
+    }
+
+    return parsedData;
+  } catch (error) {
+    console.error('OpenAI format conversion failed:', error);
+    return null;
+  }
+}
 
 function generatePrompt(projection: ProcessedProjection): string {
   const playerName = projection.player?.attributes.display_name;
@@ -45,13 +106,13 @@ Stat: ${statType}
 Line: ${line}
 Status: ${status}
 Odds Type: ${odds}
-Line Comparison: *SEARCH UP BETTING WEBSITES RELATED TO ${playerName} AND SEE THEIR LINES*
+Line Comparison: *SEARCH UP BETTING WEBSITES RELATED TO ${playerName} on fanduel bet365, etc. AND SEE THEIR LINES*
 
 Statistics:
-- Season Average: ${seasonAvg || 'N/A'}
+- Season Average: Please search up for ${playerName}
 - Recent Average: *SEARCH UP STATS FOR ${playerName}*
 - Performance Trend: *SEARCH UP RECENT TRENDS FOR ${playerName}*
-- Percentage Difference: ${percentageDiff}%
+
 
 Recent Game: Research resent games, tournaments, rankings regarding ${playerName}, I would like an average for the ${statType} of  ${playerName} for the last 5, 10, 15, 20, and 50 games/matches
 
@@ -69,6 +130,8 @@ Consider:
 7. Social media sentiment and post from ${playerName} and about ${playerName} from verified news sources and social media platforms
 8. RESEARCH Odds data regarding ${playerName}'s Stat: ${statType}
 Line: ${line} on over 5 different bookie.
+9. venue statistics for ${playerName} , do they play better at home or away?
+10. Opponent difficulty, is their oponent good or bad? Is it expected to be a blow out or crushing?
 
 Provide a detailed analysis with confidence level, recommendation, key factors, and risk assessment.`;
 }
@@ -160,7 +223,7 @@ export async function POST(req: NextRequest) {
     const userPrompt = generatePrompt(projection);
     console.log('Generated prompt:', userPrompt);
 
-    const response = await client.chat.completions.create({
+    const response = await perplexityClient.chat.completions.create({
       model: 'sonar-reasoning-pro',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -182,11 +245,16 @@ export async function POST(req: NextRequest) {
     try {
       const parsedData = JSON.parse(content);
       
-      // Validate the parsed data using our type guard
       if (!isValidAnalysisResponse(parsedData)) {
-        console.error('Invalid analysis response structure:', parsedData);
+        console.log('Invalid response, attempting OpenAI parsing...');
+        const openaiParsed = await tryParseWithOpenAI(content);
+        if (openaiParsed) {
+          console.log('Successfully parsed with OpenAI');
+          return NextResponse.json({ success: true, data: openaiParsed });
+        }
         
-        // Attempt to create a valid response from the parsed data
+        console.error('Invalid analysis response structure:', parsedData);
+        // Fall back to sanitized version if OpenAI fails
         const sanitizedAnalysis: AnalysisResponse = {
           confidence: typeof parsedData.confidence === 'number' && parsedData.confidence >= 0 && parsedData.confidence <= 1
             ? parsedData.confidence
@@ -222,7 +290,15 @@ export async function POST(req: NextRequest) {
         timestamp: new Date().toISOString()
       });
 
-      // Try to extract JSON using regex as a fallback
+      // Try OpenAI parsing first
+      console.log('Attempting OpenAI parsing for unparseable content...');
+      const openaiParsed = await tryParseWithOpenAI(content);
+      if (openaiParsed) {
+        console.log('Successfully parsed unparseable content with OpenAI');
+        return NextResponse.json({ success: true, data: openaiParsed });
+      }
+
+      // Then try regex as a last resort
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
@@ -231,12 +307,15 @@ export async function POST(req: NextRequest) {
             console.log('Successfully extracted JSON using regex');
             return NextResponse.json({ success: true, data: extractedData });
           }
-        } catch (secondaryError) {
-          console.error('Failed to parse extracted JSON:', secondaryError);
+        } catch (e) {
+          console.error('Failed to parse extracted JSON:', e);
         }
       }
 
-      return NextResponse.json({ success: false, data: createFallbackAnalysis('Failed to parse API response') });
+      return NextResponse.json({ 
+        success: false, 
+        data: createFallbackAnalysis('Failed to parse API response') 
+      });
     }
 
   } catch (error) {

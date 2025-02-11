@@ -1,13 +1,17 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import type { ApiResponse, ProjectionWithAttributes, ProcessedProjection, StatAverage } from '@/app/types/props';
-import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import type { ApiResponse, ProjectionWithAttributes, NewPlayer, StatAverage } from '@/types/props';
+import type { AnalysisResponse, ProcessedProjection } from '@/app/types/props';
+import { RefreshCw, CheckSquare, Bell } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ProjectionDisplay } from './projection-display';
 import { ProjectionDialog } from '@/app/analyze/components/projection-dialog';
+import { BatchAnalysisResults } from '@/app/analyze/components/batch-analysis-results';
+import { analyzeBatchProjections } from '@/app/actions';
+import { playNotificationSound } from '@/app/lib/notification-sound';
 
 interface ClientProjectionListProps {
   initialData: ApiResponse;
@@ -26,65 +30,37 @@ export function ClientProjectionList({
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [selectedProjection, setSelectedProjection] = useState<ProjectionWithAttributes | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedProjections, setSelectedProjections] = useState<Set<string>>(new Set());
+  const [batchResults, setBatchResults] = useState<Array<{ analysis: AnalysisResponse; projection: ProcessedProjection; isError?: boolean }>>([]);
+  const [isBatchAnalyzing, setIsBatchAnalyzing] = useState(false);
 
-  const processProjections = useCallback((response: ApiResponse) => {
+  const processProjections = useCallback((data: ApiResponse): ProjectionWithAttributes[] => {
     try {
       // Validate response structure
-      if (!response || !Array.isArray(response.data)) {
+      if (!data || !Array.isArray(data.data)) {
         throw new Error('Invalid response format: missing or invalid data array');
       }
 
-      // Create maps with proper type checking
-      const playerMap = new Map();
-      const statsMap = new Map();
-
-      // Safely process included data if it exists
-      if (Array.isArray(response.included)) {
-        // Process players
-        response.included
-          .filter(item => item.type === 'new_player')
-          .forEach(player => playerMap.set(player.id, player));
-
-        // Process stat averages
-        response.included
-          .filter(item => item.type === 'stat_average')
-          .forEach(stat => statsMap.set(stat.id, stat));
-      } else {
-        console.warn('No included data found in response');
-      }
-
       // Process projections with null checks and filter by odds_type
-      const processedData = response.data
+      const processedData = data.data
         .filter(projection => projection.attributes.odds_type === 'standard')
         .map(projection => {
-          const playerId = projection.relationships.new_player?.data?.id;
-          const player = playerId ? playerMap.get(playerId) : undefined;
-          
-          const statAverageId = projection.relationships.stat_average?.data?.id;
-          const stats = statAverageId ? statsMap.get(statAverageId) : undefined;
-          
-          // Create a type-safe id function that matches the interface exactly
-          const createIdFunction = (projId: string): ((id: any) => unknown) => {
-            return (id: any): unknown => projId;
+          const player = data.included.find(
+            item => item.type === 'new_player' && item.id === projection.relationships.new_player?.data?.id
+          ) as NewPlayer | null;
+
+          const stats = data.included.find(
+            item => item.type === 'stat_average' && item.id === projection.relationships.stat_average?.data?.id
+          ) as StatAverage | null;
+
+          return {
+            projection,
+            player,
+            stats,
+            attributes: projection.attributes,
+            relationships: projection.relationships
           };
-          
-          const projectionWithAttributes: ProjectionWithAttributes = {
-            id: createIdFunction(projection.id),
-            projection: {
-              ...projection,
-              attributes: {
-                ...projection.attributes,
-                updated_at: projection.attributes.updated_at || new Date().toISOString(),
-              }
-            },
-            player: player || null,
-            stats: stats || null,
-            attributes: undefined,
-            relationships: undefined
-          };
-          
-          return projectionWithAttributes;
         });
 
       // Sort by difference percentage
@@ -98,8 +74,7 @@ export function ClientProjectionList({
         return getDiffPercentage(b) - getDiffPercentage(a);
       });
 
-      setProjectionData([...sortedData]);
-      setLastRefreshed(new Date());
+      return sortedData;
     } catch (err) {
       console.error('Error processing projection data:', err);
       throw new Error('Failed to process projection data');
@@ -123,26 +98,25 @@ export function ClientProjectionList({
         throw new Error(result.message || 'Failed to fetch projections');
       }
 
-      processProjections(result.data);
+      const processedData = processProjections(result.data);
+      setProjectionData(processedData);
+      setLastRefreshed(new Date());
       
-      toast({
-        title: "Projections Updated",
+      toast.success("Projections Updated", {
         description: "Latest projections have been loaded.",
         duration: 2000,
       });
     } catch (err) {
       console.error('Error fetching projections:', err);
       setError('Failed to fetch projections');
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to refresh projections. Please try again.",
-        variant: "destructive",
         duration: 3000,
       });
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, processProjections, toast]);
+  }, [isLoading, processProjections]);
 
   const refreshControlsRef = useRef<ReturnType<typeof ReactDOM.createRoot> | null>(null);
 
@@ -191,44 +165,134 @@ export function ClientProjectionList({
     };
   }, [isLoading, lastRefreshed, refreshProjections]);
 
-  // Initial load
   useEffect(() => {
-    processProjections(initialData);
+    if (initialData) {
+      const processedData = processProjections(initialData);
+      setProjectionData(processedData);
+    }
   }, [initialData, processProjections]);
 
+  const toggleProjectionSelection = (projection: ProjectionWithAttributes) => {
+    setSelectedProjections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(projection.projection.id)) {
+        newSet.delete(projection.projection.id);
+      } else {
+        newSet.add(projection.projection.id);
+      }
+      return newSet;
+    });
+  };
+
   const transformToProcessedProjection = (projection: ProjectionWithAttributes): ProcessedProjection => {
-    const stats = projection.stats?.attributes;
-    const diff = stats?.average
-      ? ((projection.projection.attributes.line_score - stats.average) / stats.average) * 100
+    const stats = projection.stats;
+    const diff = stats?.attributes?.average
+      ? ((projection.projection.attributes.line_score - stats.attributes.average) / stats.attributes.average) * 100
       : 0;
 
-    // Get the projection id safely
-    const projectionId = projection.id('stat_average');
-    
     return {
+      id: projection.projection.id,
       projection: {
-        ...projection.projection,
-        relationships: {
-          ...projection.projection.relationships,
-          new_player: {
-            data: projection.player ? {
-              type: 'new_player',
-              id: projection.player.id
-            } : null
-          },
-          stat_average: {
-            data: projection.stats ? {
-              type: 'stat_average',
-              id: typeof projectionId === 'string' ? projectionId : projection.projection.id
-            } : null
-          },
-          league: projection.projection.relationships.league
-        }
+        id: projection.projection.id,
+        type: projection.projection.type,
+        attributes: {
+          is_promo: Boolean(projection.projection.attributes.is_promo),
+          is_live: Boolean(projection.projection.attributes.is_live),
+          in_game: Boolean(projection.projection.attributes.in_game),
+          hr_20: Boolean(projection.projection.attributes.hr_20),
+          refundable: Boolean(projection.projection.attributes.refundable),
+          tv_channel: projection.projection.attributes.tv_channel,
+          description: projection.projection.attributes.description,
+          status: projection.projection.attributes.status,
+          line_score: projection.projection.attributes.line_score,
+          start_time: projection.projection.attributes.start_time,
+          stat_type: projection.projection.attributes.stat_type,
+          stat_display_name: projection.projection.attributes.stat_display_name,
+          game_id: projection.projection.attributes.game_id,
+          updated_at: projection.projection.attributes.updated_at,
+          odds_type: projection.projection.attributes.odds_type,
+          line_movement: projection.projection.attributes.line_movement,
+        },
+        relationships: projection.projection.relationships
       },
       player: projection.player,
       statAverage: projection.stats,
-      percentageDiff: diff,
+      percentageDiff: diff
     };
+  };
+
+  const handleBatchAnalyze = async () => {
+    if (selectedProjections.size === 0) {
+      toast.error("Please select at least one projection to analyze.");
+      return;
+    }
+
+    setIsBatchAnalyzing(true);
+    
+    // Show starting toast with loading state
+    toast.promise(
+      (async () => {
+        const selectedData = projectionData.filter(p => selectedProjections.has(p.projection.id));
+
+        try {
+          // Transform all projections first
+          const processedProjections = selectedData.map(projection => 
+            transformToProcessedProjection(projection)
+          );
+
+          // Send all projections in a single API call
+          const analyses = await analyzeBatchProjections(processedProjections);
+          
+          // Map the results back to their projections
+          const results = analyses.map((analysis, index) => ({
+            analysis,
+            projection: processedProjections[index],
+            isError: analysis.confidence === 0 && analysis.recommendation === 'neutral'
+          }));
+
+          setBatchResults(results);
+
+          // Play notification sound
+          await playNotificationSound({ 
+            volume: 0.8  // Adjust volume as needed
+          });
+
+          return results;
+        } catch (error) {
+          console.error('Batch analysis failed:', error);
+          throw error;
+        }
+      })(),
+      {
+        loading: 'Analyzing projections...',
+        success: (results) => {
+          // Show action toast separately after success
+          toast(
+            `Successfully analyzed ${results.length} projections`,
+            {
+              action: {
+                label: "View Results",
+                onClick: () => {
+                  const resultsElement = document.getElementById('batch-analysis-results');
+                  if (resultsElement) {
+                    resultsElement.scrollIntoView({ behavior: 'smooth' });
+                  }
+                },
+              },
+              icon: <Bell className="h-4 w-4" />,
+              duration: 5000,
+            }
+          );
+          
+          // Return just the success message
+          return `Completed ${results.length} analyses`;
+        },
+        error: "Failed to analyze projections. Please try again.",
+        finally: () => {
+          setIsBatchAnalyzing(false);
+        }
+      }
+    );
   };
 
   return (
@@ -239,20 +303,61 @@ export function ClientProjectionList({
         </div>
       )}
       
-      <ProjectionDisplay 
-        projectionData={projectionData} 
-        onProjectionSelect={(projection) => {
-          const projectionWithId: ProjectionWithAttributes = {
-            ...projection,
-            attributes: projection.projection.attributes,
-            relationships: projection.projection.relationships,
-            id: () => projection.projection.id
-          };
-          
-          setSelectedProjection(projectionWithId);
-          setIsDialogOpen(true);
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshProjections()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Last refreshed: {lastRefreshed.toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setIsSelectionMode(!isSelectionMode);
+              if (!isSelectionMode) {
+                setSelectedProjections(new Set());
+                setBatchResults([]);
+              }
+            }}
+          >
+            <CheckSquare className="h-4 w-4 mr-2" />
+            {isSelectionMode ? "Exit Selection" : "Select Multiple"}
+          </Button>
+          {isSelectionMode && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleBatchAnalyze}
+              disabled={isBatchAnalyzing || selectedProjections.size === 0}
+            >
+              {isBatchAnalyzing ? "Analyzing..." : "Analyze Selected"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <ProjectionDisplay
+        projectionData={projectionData}
+        onProjectionSelect={(projection: ProjectionWithAttributes) => {
+          if (isSelectionMode) {
+            toggleProjectionSelection(projection);
+          } else {
+            setSelectedProjection(projection);
+            setIsDialogOpen(true);
+          }
         }}
-        selectedProjectionId={selectedProjection?.projection.id}
+        isSelectionMode={isSelectionMode}
+        selectedProjections={selectedProjections}
       />
 
       <ProjectionDialog 
@@ -260,9 +365,20 @@ export function ClientProjectionList({
         isOpen={isDialogOpen}
         onClose={() => {
           setIsDialogOpen(false);
-          setSelectedProjection(null);
         }}
       />
+
+      {batchResults.length > 0 && (
+        <div 
+          id="batch-analysis-results" 
+          className="mt-8 scroll-mt-24" // Add padding for smooth scroll
+        >
+          <BatchAnalysisResults
+            results={batchResults}
+            isAnalyzing={isBatchAnalyzing}
+          />
+        </div>
+      )}
     </div>
   );
 }

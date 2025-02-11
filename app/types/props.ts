@@ -105,6 +105,7 @@ export interface ProcessedProjectionRelationships {
 }
 
 export interface ProcessedProjection {
+  id: string | null | undefined;
   projection: {
     id: string;
     type: 'projection';

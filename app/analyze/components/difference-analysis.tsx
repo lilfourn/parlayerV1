@@ -88,6 +88,7 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
 
             // Create processed projection with required relationships
             const processedProjection: ProcessedProjection = {
+              id: projection.id,
               projection: {
                 id: projection.id,
                 type: projection.type,
