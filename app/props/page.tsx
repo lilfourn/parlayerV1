@@ -91,6 +91,7 @@ export default function Props() {
 
           <div className="p-4">
             <div className="max-w-7xl mx-auto">
+              <div id="refresh-controls" className="mb-4" />
               <ClientProjectionList initialData={initialData} />
             </div>
           </div>

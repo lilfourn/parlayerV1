@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import type { ApiResponse, ProjectionWithAttributes, ProcessedProjection, StatAverage } from '@/app/types/props';
 import { RefreshCw } from "lucide-react";
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import ReactDOM from 'react-dom/client';
 import { ProjectionDisplay } from './projection-display';
 import { ProjectionDialog } from '@/app/analyze/components/projection-dialog';
 
@@ -133,6 +134,47 @@ export function ClientProjectionList({
     }
   }, [isLoading, processProjections, toast]);
 
+  const refreshControlsRef = useRef<ReturnType<typeof ReactDOM.createRoot> | null>(null);
+
+  useEffect(() => {
+    // Mount refresh controls
+    const refreshContainer = document.getElementById('refresh-controls');
+    if (refreshContainer && !refreshControlsRef.current) {
+      refreshControlsRef.current = ReactDOM.createRoot(refreshContainer);
+    }
+
+    // Only render if we have a root
+    if (refreshControlsRef.current) {
+      const controls = (
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-500">
+            Last updated: {lastRefreshed.toLocaleTimeString()}
+          </div>
+          <Button 
+            onClick={refreshProjections} 
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
+      );
+      refreshControlsRef.current.render(controls);
+    }
+
+    // Cleanup function
+    return () => {
+      // Only unmount if we're actually unmounting the component
+      if (refreshControlsRef.current && !document.getElementById('refresh-controls')) {
+        refreshControlsRef.current.unmount();
+        refreshControlsRef.current = null;
+      }
+    };
+  }, [isLoading, lastRefreshed, refreshProjections]);
+
   // Initial load
   useEffect(() => {
     processProjections(initialData);
@@ -190,22 +232,6 @@ export function ClientProjectionList({
           setSelectedProjection(null);
         }}
       />
-
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
-          Last updated: {lastRefreshed.toLocaleTimeString()}
-        </div>
-        <Button 
-          onClick={refreshProjections} 
-          disabled={isLoading}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
     </div>
   );
 }
