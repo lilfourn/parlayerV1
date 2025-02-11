@@ -53,7 +53,7 @@ function formatMarketName(key: string): string {
 
 function PlayerPropsSkeleton() {
   return (
-    <Card className="mt-4 p-4">
+    <Card className="mt-4 p-4 bg-gray-900/50">
       <div className="space-y-4">
         {/* Market selector skeleton */}
         <Skeleton className="h-10 w-[200px]" />
@@ -124,7 +124,7 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
   
   if (!sportMarkets) {
     return (
-      <Card className="mt-4 p-4 text-center text-gray-600">
+      <Card className="mt-4 p-4 bg-gray-900/50 text-center text-gray-600">
         No player props available for this sport
       </Card>
     );
@@ -136,7 +136,7 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
 
   if (error) {
     return (
-      <Card className="mt-4 p-4 text-center text-red-600">
+      <Card className="mt-4 p-4 bg-gray-900/50 text-center text-red-600">
         Error: {error}
       </Card>
     );
@@ -172,7 +172,7 @@ export function PlayerProps({ sportKey, eventId, isOpen }: PlayerPropsProps) {
 
       {selectedMarket && oddsData && (
         <div className="px-4 overflow-x-auto">
-          <Table>
+          <Table className="bg-gray-900/50">
             <TableHeader>
               <TableRow>
                 <TableHead>Player</TableHead>

@@ -160,3 +160,50 @@ export interface AnalysisResponse {
   summary: string;
   risk_level: 'low' | 'medium' | 'high';
 }
+
+export const isValidAnalysisResponse = (data: any): data is AnalysisResponse => {
+  if (!data || typeof data !== 'object') return false;
+
+  // Check confidence
+  if (typeof data.confidence !== 'number' || data.confidence < 0 || data.confidence > 1) {
+    return false;
+  }
+
+  // Check recommendation
+  const validRecommendations = ['strong_over', 'lean_over', 'neutral', 'lean_under', 'strong_under'];
+  if (!validRecommendations.includes(data.recommendation)) {
+    return false;
+  }
+
+  // Check key_factors
+  if (!Array.isArray(data.key_factors)) return false;
+  
+  const validImpacts = ['positive', 'negative', 'neutral'];
+  const isValidKeyFactor = (kf: any): boolean => {
+    return (
+      typeof kf === 'object' &&
+      typeof kf.factor === 'string' &&
+      validImpacts.includes(kf.impact) &&
+      typeof kf.weight === 'number' &&
+      kf.weight >= 0 &&
+      kf.weight <= 1
+    );
+  };
+  
+  if (!data.key_factors.every(isValidKeyFactor)) {
+    return false;
+  }
+
+  // Check summary
+  if (typeof data.summary !== 'string' || data.summary.trim() === '') {
+    return false;
+  }
+
+  // Check risk_level
+  const validRiskLevels = ['low', 'medium', 'high'];
+  if (!validRiskLevels.includes(data.risk_level)) {
+    return false;
+  }
+
+  return true;
+};

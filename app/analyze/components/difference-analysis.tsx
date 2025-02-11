@@ -214,11 +214,10 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-primary" />
-              <CardTitle className="text-2xl">Value Analysis</CardTitle>
+              <CardTitle className="text-2xl">Projections</CardTitle>
             </div>
             <CardDescription className="text-muted-foreground">
-              Analyzing projections sorted by variance from historical averages
+              Sorted by variance from historical averages
             </CardDescription>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -243,7 +242,7 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
           <>
             {/* Desktop View */}
             <div className="hidden md:block rounded-lg border bg-card">
-              <Table>
+              <Table className="bg-gray-900/50">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[250px]">Player</TableHead>
@@ -373,7 +372,7 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                     open={expandedRows.has(item.projection.id)}
                     onOpenChange={() => toggleRow(item.projection.id)}
                   >
-                    <Card className="p-4">
+                    <Card className="p-4 bg-gray-900/50">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <PlayerAvatar

@@ -39,7 +39,7 @@ export default function Odds() {
         <div className="flex h-screen overflow-hidden">
             <SidebarProvider>
                 <AppSidebar />
-                <main className="flex-1 relative">
+                <main className="flex-1 relative flex flex-col h-screen">
                     <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
                         <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                             <div className="flex items-center space-x-4">
@@ -61,7 +61,7 @@ export default function Odds() {
                         </div>
                     </div>
 
-                    <div className="p-4">
+                    <div className="flex-1 overflow-y-auto p-4">
                         <Suspense fallback={<EventsListFallback />}>
                             <EventsList 
                                 selectedSport={selectedSport ?? undefined} 

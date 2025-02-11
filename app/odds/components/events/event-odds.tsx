@@ -55,14 +55,24 @@ export function EventOdds({ sportKey, event, oddsData, isOpen }: EventOddsProps)
       isOpen ? "animate-in slide-in-from-top-2" : "animate-out slide-out-to-top-2"
     )}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="game">Game Odds</TabsTrigger>
-          <TabsTrigger value="props">Player Props</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-gray-900/50">
+          <TabsTrigger 
+            value="game" 
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Game Odds
+          </TabsTrigger>
+          <TabsTrigger 
+            value="props"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Player Props
+          </TabsTrigger>
         </TabsList>
         
         {activeTab === 'game' && (
           <TabsContent value="game" forceMount>
-            <Table>
+            <Table className="bg-gray-900/50">
               <TableHeader>
                 <TableRow>
                   <TableHead>Bookmaker</TableHead>

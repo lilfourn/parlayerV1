@@ -72,7 +72,7 @@ export function EventsList({ selectedSport, onLoadingChange }: EventsListProps) 
 
   if (!events.length) {
     return (
-      <Card className="p-8">
+      <Card className="p-8 bg-gray-900/50">
         <p className="text-center text-gray-500">No events found for {selectedSport}.</p>
       </Card>
     );
@@ -125,61 +125,54 @@ export function EventsList({ selectedSport, onLoadingChange }: EventsListProps) 
 
   return (
     <div className="space-y-4">
-      {events.map((event) => {
-        const isExpanded = expandedEventId === event.id;
-        const isLoading = loadingOdds[event.id];
-        const error = errors[event.id];
-        const currentOddsData = oddsData[event.id];
-
-        return (
-          <Card key={event.id} className="p-4">
-            <Button
-              variant="ghost"
-              className="w-full justify-between font-normal"
-              onClick={() => toggleEvent(event.id, event.sport_key)}
-            >
-              <div className="flex flex-col items-start text-left">
-                <div className="font-semibold">
-                  {event.home_team} vs {event.away_team}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {formatDate(event.commence_time)}
-                </div>
+      {events.map((event) => (
+        <Card key={event.id} className="p-4 bg-gray-900/50">
+          <Button
+            variant="ghost"
+            className="w-full justify-between font-normal"
+            onClick={() => toggleEvent(event.id, event.sport_key)}
+          >
+            <div className="flex flex-col items-start text-left">
+              <div className="font-semibold">
+                {event.home_team} vs {event.away_team}
               </div>
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-
-            {isLoading && (
-              <div className="flex items-center justify-center p-4">
-                <Spinner size="md" />
+              <div className="text-sm text-gray-500">
+                {formatDate(event.commence_time)}
               </div>
-            )}
+            </div>
+            {expandedEventId === event.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
 
-            {error && (
-              <div className="mt-4 px-4 text-center text-red-600">
-                {error}
-              </div>
-            )}
+          {loadingOdds[event.id] && (
+            <div className="flex items-center justify-center p-4">
+              <Spinner size="md" />
+            </div>
+          )}
 
-            {!isLoading && !error && currentOddsData && (
-              <div className="space-y-2">
-                <EventOdds
+          {errors[event.id] && (
+            <div className="mt-4 px-4 text-center text-red-600">
+              {errors[event.id]}
+            </div>
+          )}
+
+          {!loadingOdds[event.id] && !errors[event.id] && oddsData[event.id] && (
+            <div className="space-y-2">
+              <EventOdds
+                sportKey={event.sport_key}
+                event={event}
+                oddsData={oddsData[event.id]}
+                isOpen={expandedEventId === event.id}
+              />
+              {expandedEventId === event.id && (
+                <TopPlayerOdds
+                  eventId={event.id}
                   sportKey={event.sport_key}
-                  event={event}
-                  oddsData={currentOddsData}
-                  isOpen={isExpanded}
                 />
-                {isExpanded && (
-                  <TopPlayerOdds
-                    eventId={event.id}
-                    sportKey={event.sport_key}
-                  />
-                )}
-              </div>
-            )}
-          </Card>
-        );
-      })}
+              )}
+            </div>
+          )}
+        </Card>
+      ))}
     </div>
   );
 }

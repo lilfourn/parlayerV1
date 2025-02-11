@@ -30,6 +30,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import cn from 'classnames';
 
 // League configuration with icons and display names
 const LEAGUE_CONFIG = [
@@ -492,7 +493,7 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-background dark:bg-gray-900/50">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -527,9 +528,10 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={`cursor-pointer hover:bg-muted/50 ${
-                    selectedProjectionId === row.original.projection.id ? 'bg-muted' : ''
-                  }`}
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-800/50",
+                    selectedProjectionId === row.original.projection.id ? 'bg-muted dark:bg-gray-800/50' : ''
+                  )}
                   onClick={() => onProjectionSelect?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (

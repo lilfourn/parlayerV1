@@ -327,7 +327,7 @@ export function TopPlayerOdds({ eventId, sportKey }: TopPlayerOddsProps) {
 
   if (loading) {
     return (
-      <Card className="mt-2 p-4">
+      <Card className="mt-2 p-4 bg-gray-900/50">
         <div className="flex items-center justify-center">
           <Spinner size="sm" />
           <span className="ml-3 text-sm text-amber-600/70">Loading top player odds...</span>
@@ -345,8 +345,8 @@ export function TopPlayerOdds({ eventId, sportKey }: TopPlayerOddsProps) {
   }
 
   return (
-    <Card className="mt-2 p-2">
-      <Table>
+    <Card className="mt-2 p-2 bg-gray-900/50">
+      <Table className="bg-gray-900/50">
         <TableHeader>
           <TableRow>
             <TableHead>Player</TableHead>

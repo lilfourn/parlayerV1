@@ -140,7 +140,7 @@ export function BetSlip() {
                         {stats && (
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Avg</span>
-                            <span className={diffColor}>{avgValue.toFixed(1)}</span>
+                            <span className="text-white">{avgValue.toFixed(1)}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-muted-foreground">

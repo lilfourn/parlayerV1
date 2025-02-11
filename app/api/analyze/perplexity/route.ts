@@ -1,6 +1,6 @@
 // app/api/analyze/perplexity/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { ProcessedProjection, AnalysisResponse } from '@/app/types/props';
+import { ProcessedProjection, AnalysisResponse, isValidAnalysisResponse } from '@/app/types/props';
 import { OpenAI } from 'openai';
 
 if (!process.env.PERPLEXITY_API_KEY) {
@@ -73,58 +73,68 @@ Line: ${line} on over 5 different bookie.
 Provide a detailed analysis with confidence level, recommendation, key factors, and risk assessment.`;
 }
 
-const SYSTEM_PROMPT = `You are an expert sports analyst specializing in player projections and statistical analysis. 
-IMPORTANT: For each analysis, you must search the internet for the most recent statistics, news, and performance data about the player and their specific projection type. Use this data to enhance your analysis.
+const SYSTEM_PROMPT = `You are an expert sports analyst specializing in player projections and statistical analysis. Your task is to analyze player projections and provide insights in a strictly formatted JSON response.
 
-For each projection, analyze the following aspects:
+CRITICAL FORMATTING REQUIREMENTS:
+1. Respond ONLY with a valid JSON object
+2. Do not include any text before or after the JSON
+3. Do not include any explanations or notes
+4. Use the exact format shown below
+5. Ensure all JSON syntax is valid (quotes, commas, brackets)
 
-1. Statistical Research and Analysis:
-   - ACTIVELY SEARCH for and analyze the player's recent statistics from sports data websites
-   - Look for news articles about the player's recent performance and status
-   - Find historical performance data for similar situations
-   - Compare current projection to expert consensus from various sports analytics sites
-   - Research team-specific factors that might affect the projection
-   
-
-2. Data Integration:
-   - Compare the provided line to your researched data
-   - Use actual statistics from your web research in your analysis
-   - Consider both the provided stats AND your researched data
-   - Look for any discrepancies between our data and current public data
-
-3. Contextual Factors:
-   - Research current team dynamics and matchups
-   - Look for recent news about injuries or other relevant factors
-   - Find information about venue, weather (if relevant), and other external factors
-   - Research historical performance in similar situations
-
-4. Risk Assessment:
-   - Evaluate prediction confidence based on ALL available data
-   - Identify key factors from both provided and researched data
-   - Research similar historical projections and their outcomes
-
-Your response must be a VALID JSON string in the following format:
+REQUIRED JSON STRUCTURE:
 {
-  "confidence": number between 0 and 1,
-  "recommendation": "strong_over" | "lean_over" | "neutral" | "lean_under" | "strong_under",
+  "confidence": <number between 0 and 1>,
+  "recommendation": <one of: "strong_over", "lean_over", "neutral", "lean_under", "strong_under">,
   "key_factors": [
     {
-      "factor": "description of the factor (include specific stats and sources)",
-      "impact": "positive" | "negative" | "neutral",
-      "weight": number between 0 and 1
+      "factor": <string describing factor with stats and sources>,
+      "impact": <one of: "positive", "negative", "neutral">,
+      "weight": <number between 0 and 1>
     }
   ],
-  "summary": "detailed analysis summary including researched data and sources",
-  "risk_level": "low" | "medium" | "high"
+  "summary": <string with analysis and sources>,
+  "risk_level": <one of: "low", "medium", "high">
 }
 
-IMPORTANT: 
-1. Your response must be ONLY the JSON object, no additional text.
-2. All fields are required.
-3. Use the exact field names and value types specified above.
-4. The JSON must be valid and parseable.
-5. Include specific statistics and sources in your analysis.
-6. Base your recommendation on BOTH provided data and researched data.`;
+Example valid response:
+{
+  "confidence": 0.85,
+  "recommendation": "strong_over",
+  "key_factors": [
+    {
+      "factor": "Player averaged 28.5 points in last 5 games (source: NBA.com)",
+      "impact": "positive",
+      "weight": 0.8
+    }
+  ],
+  "summary": "Analysis based on recent performance trends...",
+  "risk_level": "low"
+}
+
+ANALYSIS REQUIREMENTS:
+1. Statistical Research:
+   - Research and analyze recent player statistics
+   - Find news articles about performance and status
+   - Compare to expert consensus
+   - Consider team factors
+
+2. Data Integration:
+   - Compare line to researched data
+   - Use actual statistics in analysis
+   - Note any data discrepancies
+
+3. Context:
+   - Research team dynamics
+   - Check injury reports
+   - Consider external factors
+
+4. Risk Assessment:
+   - Evaluate confidence level
+   - Identify key factors
+   - Research similar projections
+
+Remember: Your response must be ONLY the JSON object with no additional text.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -156,65 +166,101 @@ export async function POST(req: NextRequest) {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.2,
-      response_format: { type: 'text' }
+      temperature: 0.1,
+      max_tokens: 2000
     });
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('No content in API response');
+      console.error('Empty response from API');
+      return NextResponse.json(createFallbackAnalysis('No content in API response'));
     }
 
-    // Extract JSON from content by finding the last occurrence of a JSON object
-    const jsonMatch = content.match(/\{(?:[^{}]|{[^{}]*})*\}$/);
-    if (!jsonMatch) {
-      console.error('No valid JSON found in response:', content);
-      throw new Error('No valid JSON found in API response');
-    }
+    console.log('Raw API response:', content);
 
-    // Parse the JSON portion
+    // First try to parse the content directly as JSON
     try {
-      const analysis = JSON.parse(jsonMatch[0]) as AnalysisResponse;
-      return NextResponse.json(analysis);
-    } catch (parseError) {
-      console.error('Failed to parse API response as JSON:', content);
+      const parsedData = JSON.parse(content);
       
-      // Fallback parsing mechanism
-      const fallbackAnalysis: AnalysisResponse = {
-        confidence: 0,
-        recommendation: 'neutral',
-        key_factors: [],
-        summary: '',
-        risk_level: 'high'
-      };
+      // Validate the parsed data using our type guard
+      if (!isValidAnalysisResponse(parsedData)) {
+        console.error('Invalid analysis response structure:', parsedData);
+        
+        // Attempt to create a valid response from the parsed data
+        const sanitizedAnalysis: AnalysisResponse = {
+          confidence: typeof parsedData.confidence === 'number' && parsedData.confidence >= 0 && parsedData.confidence <= 1
+            ? parsedData.confidence
+            : 0,
+          recommendation: ['strong_over', 'lean_over', 'neutral', 'lean_under', 'strong_under'].includes(parsedData.recommendation)
+            ? parsedData.recommendation
+            : 'neutral',
+          key_factors: Array.isArray(parsedData.key_factors)
+            ? parsedData.key_factors.filter((kf: any) => 
+                typeof kf === 'object' &&
+                typeof kf.factor === 'string' &&
+                ['positive', 'negative', 'neutral'].includes(kf.impact) &&
+                typeof kf.weight === 'number' &&
+                kf.weight >= 0 &&
+                kf.weight <= 1
+              )
+            : [],
+          summary: typeof parsedData.summary === 'string' ? parsedData.summary : 'Analysis completed with limited data',
+          risk_level: ['low', 'medium', 'high'].includes(parsedData.risk_level)
+            ? parsedData.risk_level
+            : 'high'
+        };
 
-      // Try to extract recommendation
-      const recommendationMatch = content.match(/recommendation["\s:]+(strong_over|lean_over|neutral|lean_under|strong_under)/i);
-      if (recommendationMatch) {
-        fallbackAnalysis.recommendation = recommendationMatch[1].toLowerCase() as AnalysisResponse['recommendation'];
+        console.log('Created sanitized analysis:', sanitizedAnalysis);
+        return NextResponse.json(sanitizedAnalysis);
       }
 
-      // Try to extract confidence
-      const confidenceMatch = content.match(/confidence["\s:]+(\d+(\.\d+)?)/i);
-      if (confidenceMatch) {
-        fallbackAnalysis.confidence = parseFloat(confidenceMatch[1]);
+      return NextResponse.json(parsedData);
+    } catch (parseError) {
+      console.error('Failed to parse API response:', {
+        error: parseError,
+        content: content,
+        timestamp: new Date().toISOString()
+      });
+
+      // Try to extract JSON using regex as a fallback
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const extractedData = JSON.parse(jsonMatch[0]);
+          if (isValidAnalysisResponse(extractedData)) {
+            console.log('Successfully extracted JSON using regex');
+            return NextResponse.json(extractedData);
+          }
+        } catch (secondaryError) {
+          console.error('Failed to parse extracted JSON:', secondaryError);
+        }
       }
 
-      // Try to extract summary
-      const summaryMatch = content.match(/summary["\s:]+"([^"]+)"/i);
-      if (summaryMatch) {
-        fallbackAnalysis.summary = summaryMatch[1];
-      }
-
-      console.log('Using fallback parsing mechanism:', fallbackAnalysis);
-      return NextResponse.json(fallbackAnalysis);
+      return NextResponse.json(createFallbackAnalysis('Failed to parse API response'));
     }
 
   } catch (error) {
-    console.error('Error in Perplexity API:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process request' },
-      { status: 500 }
-    );
+    console.error('Error in Perplexity API:', {
+      error,
+      timestamp: new Date().toISOString(),
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return NextResponse.json(createFallbackAnalysis(
+      error instanceof Error ? error.message : 'Failed to process request'
+    ));
   }
+}
+
+function createFallbackAnalysis(errorMessage: string): AnalysisResponse {
+  return {
+    confidence: 0,
+    recommendation: 'neutral',
+    key_factors: [{
+      factor: `Analysis failed: ${errorMessage}`,
+      impact: 'neutral',
+      weight: 1
+    }],
+    summary: 'Unable to generate analysis. Please try again.',
+    risk_level: 'high'
+  };
 }

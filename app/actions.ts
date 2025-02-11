@@ -36,27 +36,44 @@ export async function analyzeProjection(projection: ProcessedProjection): Promis
       body: JSON.stringify({ projection }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: errorData,
-      });
+    let analysis: AnalysisResponse;
+    
+    try {
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+          timestamp: new Date().toISOString()
+        });
 
-      if (response.status === 401) {
-        throw new Error('API key is missing or invalid. Please check your PERPLEXITY_API_KEY environment variable.');
+        if (response.status === 401) {
+          throw new Error('API key is missing or invalid. Please check your PERPLEXITY_API_KEY environment variable.');
+        }
+
+        // If we got a response with error details, include them in the error message
+        const errorMessage = responseData?.error || 'Failed to analyze projection';
+        throw new Error(errorMessage);
       }
 
-      throw new Error('Failed to analyze projection');
+      analysis = responseData;
+    } catch (parseError) {
+      console.error('Response parsing error:', {
+        error: parseError,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Failed to parse analysis response');
     }
-
-    const analysis = await response.json();
-    console.log('Analysis completed:', {
-      confidence: analysis.confidence,
-      recommendation: analysis.recommendation,
-      risk_level: analysis.risk_level
-    });
+    if (analysis) {
+      console.log('Analysis completed:', {
+        confidence: analysis.confidence,
+        recommendation: analysis.recommendation,
+        risk_level: analysis.risk_level,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     return analysis;
   } catch (error) {
