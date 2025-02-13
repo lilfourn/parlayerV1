@@ -436,9 +436,12 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       },
       sortingFn: (rowA, rowB) => {
         const getPercentageDiff = (row: any) => {
-          const stats = row.original.stats;
-          const projection = row.original.projection;
-          if (!stats?.attributes?.average) return 0;
+          const stats = row.original?.stats;
+          const projection = row.original?.projection;
+          
+          if (!stats?.attributes?.average || !projection?.attributes?.line_score) {
+            return 0;
+          }
           
           const diff = (projection.attributes.line_score - stats.attributes.average) / stats.attributes.average * 100;
           return Math.abs(diff);
