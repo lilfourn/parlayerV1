@@ -8,6 +8,7 @@ import {
   useReactTable,
   type SortingState,
   type ColumnDef,
+  type Row,
 } from '@tanstack/react-table';
 import { type ProjectionWithAttributes } from '@/types/props';
 import { Label } from "@/components/ui/label";
@@ -223,38 +224,12 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
     });
   }, [searchResults, selectedLeague, selectedStatType, searchTerm]);
 
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: 'projection.attributes.start_time',
-      desc: false
-    }
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
-  // Update sorting when analysis data changes
-  useEffect(() => {
-    const hasAnalysis = hasAnalysisData(filteredData);
-    
-    // If we're currently sorting by 'average' but there's no analysis data,
-    // switch to sorting by start time
-    if (!hasAnalysis && sorting.some(sort => sort.id === 'average')) {
-      setSorting([
-        {
-          id: 'projection.attributes.start_time',
-          desc: false
-        }
-      ]);
-    }
-    // If we have analysis data and we're using the default start_time sort,
-    // switch to sorting by average
-    else if (hasAnalysis && sorting.length === 1 && sorting[0].id === 'projection.attributes.start_time') {
-      setSorting([
-        {
-          id: 'average',
-          desc: true
-        }
-      ]);
-    }
-  }, [filteredData, hasAnalysisData, sorting]);
+  // Handle search term updates
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
 
   // Set initial stat type when league changes
   useEffect(() => {
@@ -264,96 +239,117 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
     }
   }, [selectedLeague, projectionData, selectedStatType]);
 
+  // Notify parent of stat type changes
   useEffect(() => {
     onStatTypeChange?.(selectedStatType);
   }, [selectedStatType, onStatTypeChange]);
 
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
-
-  // Define columns based on whether analysis data exists
-  const columns: ColumnDef<ProjectionWithAttributes>[] = [
+  // Memoize the column definitions to prevent unnecessary re-renders
+  const columns = useMemo<ColumnDef<ProjectionWithAttributes>[]>(() => [
     {
       id: 'select',
-      cell: ({ row }) => (
-        isSelectionMode ? (
-          <Checkbox
-            checked={selectedProjections.has(row.original.projection.id)}
-            onCheckedChange={() => onProjectionSelect?.(row.original)}
-            aria-label="Select projection"
-          />
-        ) : null
-      ),
       enableSorting: false,
       size: 40,
+      cell: ({ row }) => {
+        if (!isSelectionMode) return null;
+        return (
+          <Checkbox
+            checked={selectedProjections.has(row.original.projection.id)}
+            onCheckedChange={(checked) => {
+              onProjectionSelect?.(row.original);
+            }}
+          />
+        );
+      },
     },
     {
-      accessorKey: 'player',
+      id: 'player',
       header: 'Player',
+      accessorFn: (row) => row.player?.attributes.name,
       cell: ({ row }) => {
         const player = row.original.player;
         if (!player) return null;
-
         return (
-          <div className="flex items-center gap-2 min-w-[180px]">
+          <div className="flex items-center gap-2">
             <PlayerAvatar 
+              imageUrl={player.attributes.image_url || undefined}
               name={player.attributes.name}
-              imageUrl={player.attributes.image_url ?? undefined}
-              size={28}
             />
-            <div className="flex flex-col min-w-0">
-              <div className="font-medium text-sm truncate">
-                {player.attributes.name}
-              </div>
-              <div className="text-xs text-gray-500 truncate">
-                {player.attributes.team} • {row.original.projection.attributes.description}
-              </div>
+            <div className="flex flex-col">
+              <span className="font-medium">{player.attributes.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {player.attributes.team} • {player.attributes.position}
+              </span>
             </div>
           </div>
         );
       },
     },
     {
-      accessorKey: 'projection.attributes.stat_type',
+      id: 'stat_type',
       header: 'Stat',
+      accessorFn: (row) => row.projection.attributes.stat_type,
       cell: ({ row }) => {
-        return (
-          <div className="min-w-[80px] font-medium text-sm">
-            {row.original.projection.attributes.stat_type}
-          </div>
-        );
+        return getStatTypeDisplayName(row.original.projection.attributes.stat_type);
       },
     },
     {
-      accessorKey: 'projection.attributes.line_score',
+      id: 'line_score',
       header: 'Line',
+      accessorFn: (row) => row.projection.attributes.line_score,
       cell: ({ row }) => {
-        return (
-          <div className="min-w-[60px] font-medium text-sm">
-            {row.original.projection.attributes.line_score}
-          </div>
-        );
+        return row.original.projection.attributes.line_score.toFixed(1);
       },
     },
     {
-      id: 'projection.attributes.start_time',
-      accessorFn: (row) => row.projection.attributes.start_time,
-      header: 'Start',
+      id: 'average',
+      header: 'Analysis',
+      accessorFn: (row) => row.stats?.attributes?.average || 0,
       cell: ({ row }) => {
-        const startTime = new Date(row.original.projection.attributes.start_time);
+        const stats = row.original.stats?.attributes;
+        if (!stats?.average) return null;
+        
         return (
-          <div className="min-w-[90px]">
-            <div className="text-sm font-medium">{format(startTime, 'h:mm a')}</div>
-            <div className="text-[10px] text-gray-500 tracking-tight">{format(startTime, 'MMM d')}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{stats.average.toFixed(1)}</span>
+            {stats.max_value && (
+              <span className="text-xs text-muted-foreground">
+                (max: {stats.max_value.toFixed(1)})
+              </span>
+            )}
+          </div>
+        );
+      },
+      sortingFn: (rowA, rowB) => {
+        const a = rowA.original.stats?.attributes?.average || 0;
+        const b = rowB.original.stats?.attributes?.average || 0;
+        return a - b;
+      },
+    },
+    {
+      id: 'start_time',
+      header: 'Start',
+      accessorFn: (row) => row.projection.attributes.start_time,
+      cell: ({ row }) => {
+        const startTime = row.original.projection.attributes.start_time;
+        if (!startTime) return null;
+        
+        const date = new Date(startTime);
+        return (
+          <div className="flex flex-col min-w-[100px]">
+            <span className="text-sm font-medium">{format(date, 'h:mm a')}</span>
+            <span className="text-[10px] text-gray-500 tracking-tight">
+              {formatDistanceToNow(date, { addSuffix: true })}
+            </span>
           </div>
         );
       },
       sortingFn: 'datetime',
     },
     {
-      accessorKey: 'projection.attributes.updated_at',
+      id: 'updated_at',
       header: 'Updated',
+      accessorFn: (row) => row.projection.attributes.updated_at,
       cell: ({ row }) => {
         const updatedAt = row.original.projection.attributes.updated_at;
         if (!updatedAt) return null;
@@ -371,96 +367,40 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       sortingFn: 'datetime',
     },
     {
-      accessorKey: 'projection.attributes.status',
+      id: 'status',
       header: 'Status',
+      accessorFn: (row) => row.projection.attributes.status,
       cell: ({ row }) => {
-        const status = row.original.projection?.attributes.status;
+        const status = row.original.projection.attributes.status;
         return (
-          <div className={`
-            inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-            ${status === 'pre_game' ? 'bg-green-100 text-green-800' :
-              status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-              status === 'final' ? 'bg-gray-100 text-gray-800' :
-              'bg-yellow-100 text-yellow-800'}
-          `}>
-            {status === 'pre_game' ? 'Upcoming' :
-             status === 'in_progress' ? 'Live' :
-             status === 'final' ? 'Final' :
-             status}
+          <div className="flex items-center gap-2">
+            {status}
           </div>
         );
       },
     },
-  ];
+  ], [isSelectionMode, selectedProjections, onProjectionSelect]);
 
-  // Only add analysis column if there's analysis data
-  if (hasAnalysisData(filteredData)) {
-    columns.splice(3, 0, {
-      id: 'average',
-      header: 'Analysis',
-      cell: ({ row }) => {
-        const stats = row.original.stats;
-        const projection = row.original.projection;
-        
-        if (!stats || !projection) return null;
-        
-        const avgValue = stats.attributes.average;
-        const lineScore = projection.attributes.line_score;
-        
-        if (!avgValue || !lineScore) return null;
-        
-        // Calculate percentage difference
-        const diff = ((lineScore - avgValue) / avgValue) * 100;
-        const absDiff = Math.abs(diff);
-        
-        // Calculate color intensity based on absolute difference
-        // Max intensity at 30% difference
-        const intensity = Math.min(absDiff / 30, 1);
-        
-        // Always use green, more intense for bigger absolute differences
-        const backgroundColor = `rgba(34, 197, 94, ${intensity * 0.3})`;
-        
-        return (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-gray-600 min-w-[45px]">
-              {avgValue.toFixed(1)}
-            </span>
-            <div
-              className="px-2 py-1 rounded text-sm font-medium flex-1 text-center"
-              style={{ backgroundColor }}
-            >
-              {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
-            </div>
-          </div>
-        );
-      },
-      sortingFn: (rowA, rowB) => {
-        const getPercentageDiff = (row: any) => {
-          const stats = row.original?.stats;
-          const projection = row.original?.projection;
-          
-          if (!stats?.attributes?.average || !projection?.attributes?.line_score) {
-            return 0;
-          }
-          
-          const diff = (projection.attributes.line_score - stats.attributes.average) / stats.attributes.average * 100;
-          return Math.abs(diff);
-        };
+  // Filter visible columns based on whether analysis data exists
+  const visibleColumns = useMemo(() => {
+    const hasAnalysis = hasAnalysisData(filteredData);
+    return columns.filter(column => column.id !== 'average' || hasAnalysis);
+  }, [columns, filteredData, hasAnalysisData]);
 
-        return getPercentageDiff(rowB) - getPercentageDiff(rowA);
-      },
-    });
-  }
-
+  // Create table instance with error handling
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: visibleColumns,
     state: {
       sorting,
     },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    // Add debug mode to help identify issues
+    debugTable: process.env.NODE_ENV === 'development',
+    // Add error boundary
+    debugAll: process.env.NODE_ENV === 'development',
   });
 
   return (

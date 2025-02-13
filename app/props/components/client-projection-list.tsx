@@ -119,53 +119,6 @@ export function ClientProjectionList({
     }
   }, [isLoading, processProjections]);
 
-  const refreshControlsRef = useRef<ReturnType<typeof ReactDOM.createRoot> | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const renderControls = () => {
-      const refreshContainer = document.getElementById('refresh-controls');
-      if (refreshContainer && !refreshControlsRef.current && isMounted) {
-        refreshControlsRef.current = ReactDOM.createRoot(refreshContainer);
-      }
-
-      if (refreshControlsRef.current && isMounted) {
-        const controls = (
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">
-              Last updated: {lastRefreshed.toLocaleTimeString()}
-            </div>
-            <Button 
-              onClick={refreshProjections} 
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
-        );
-        refreshControlsRef.current.render(controls);
-      }
-    };
-
-    renderControls();
-
-    return () => {
-      isMounted = false;
-      // Use a small timeout to ensure we're not unmounting during render
-      setTimeout(() => {
-        if (refreshControlsRef.current) {
-          refreshControlsRef.current.unmount();
-          refreshControlsRef.current = null;
-        }
-      }, 0);
-    };
-  }, [isLoading, lastRefreshed, refreshProjections]);
-
   useEffect(() => {
     if (initialData) {
       const processedData = processProjections(initialData);
@@ -350,17 +303,18 @@ export function ClientProjectionList({
       
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <Button
+          <Button 
+            onClick={refreshProjections} 
+            disabled={isLoading}
             variant="outline"
             size="sm"
-            onClick={() => refreshProjections()}
-            disabled={isLoading}
+            className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Refreshing...' : 'Refresh'}
           </Button>
           <span className="text-sm text-muted-foreground">
-            Last refreshed: {lastRefreshed.toLocaleTimeString()}
+            Last updated: {lastRefreshed.toLocaleTimeString()}
           </span>
         </div>
         <div className="flex items-center gap-2">
