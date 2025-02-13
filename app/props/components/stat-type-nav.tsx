@@ -1,13 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from '@/lib/utils';
 import { type ProjectionWithAttributes } from '@/types/props';
 
 interface StatTypeNavProps {
@@ -54,20 +48,21 @@ function getStatTypesByLeague(projections: ProjectionWithAttributes[]) {
 function getStatTypeDisplayName(statType: string): string {
   const displayNames: Record<string, string> = {
     'points': 'Points',
-    'rebounds': 'Rebounds',
     'assists': 'Assists',
-    'threes': '3-Pointers Made',
+    'rebounds': 'Rebounds',
     'blocks': 'Blocks',
     'steals': 'Steals',
     'turnovers': 'Turnovers',
-    'fantasy_points': 'Fantasy Points',
+    'three_pointers_made': '3-Pointers Made',
+    'field_goals_made': 'Field Goals Made',
+    'free_throws_made': 'Free Throws Made',
+    'passing_touchdowns': 'Passing TDs',
     'passing_yards': 'Passing Yards',
     'rushing_yards': 'Rushing Yards',
-    'receiving_yards': 'Receiving Yards',
-    'touchdowns': 'Touchdowns',
+    'rushing_touchdowns': 'Rushing TDs',
     'receptions': 'Receptions',
-    'goals': 'Goals',
-    'saves': 'Saves',
+    'receiving_yards': 'Receiving Yards',
+    'receiving_touchdowns': 'Receiving TDs',
     'shots_on_goal': 'Shots on Goal',
     'birdies': 'Birdies',
     'bogeys': 'Bogeys',
@@ -83,28 +78,34 @@ export const StatTypeNav = memo(function StatTypeNav({
   onStatTypeChange,
 }: StatTypeNavProps) {
   const allStatTypes = getAllStatTypes(projectionData);
-  const statTypesByLeague = getStatTypesByLeague(projectionData);
   
   return (
-    <div className="flex items-center space-x-2">
-      <Select
-        value={selectedStatType}
-        onValueChange={onStatTypeChange}
+    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+      <button
+        onClick={() => onStatTypeChange("")}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200",
+          selectedStatType === ""
+            ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+            : "bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+        )}
       >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="All Stat Types">
-            {selectedStatType ? getStatTypeDisplayName(selectedStatType) : 'All Stat Types'}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">All Stat Types</SelectItem>
-          {allStatTypes.map(statType => (
-            <SelectItem key={statType} value={statType}>
-              {getStatTypeDisplayName(statType)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        All Stat Types
+      </button>
+      {allStatTypes.map(statType => (
+        <button
+          key={statType}
+          onClick={() => onStatTypeChange(statType)}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200",
+            selectedStatType === statType
+              ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+              : "bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+          )}
+        >
+          {getStatTypeDisplayName(statType)}
+        </button>
+      ))}
     </div>
   );
 });

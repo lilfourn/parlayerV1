@@ -52,10 +52,10 @@ export default function AnalyzePage() {
       <SidebarProvider>
         <AppSidebar />
         <div className="flex-1 relative">
-          <div className="absolute inset-0 bg-background/90 backdrop-blur-sm">
+          <div className="absolute inset-0 backdrop-blur-sm">
             <div className="flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
               <div className="w-full max-w-lg mx-auto">
-                <div className="bg-card text-card-foreground rounded-lg shadow-sm p-6 sm:p-8 transition-all duration-200 ease-in-out hover:shadow-md">
+                <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg shadow-sm p-6 sm:p-8 transition-all duration-200 ease-in-out hover:shadow-md">
                   <div className="text-center space-y-4">
                     <h2 className="text-xl sm:text-2xl font-semibold text-red-600">Error Loading Projections</h2>
                     <p className="text-base sm:text-lg text-foreground">{error}</p>
@@ -82,17 +82,17 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden">
       <SidebarProvider>
         <AppSidebar />
         <main className="flex-1 relative overflow-y-auto">
           {/* Sticky Header */}
-          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+          <div className="sticky top-0 z-10 bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm border-b border-border">
             <div className="flex items-center justify-between h-14 px-4">
               <div className="flex items-center space-x-4">
                 <SidebarTrigger />
                 <div className="flex items-center space-x-4">
-                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <TrendingUp className="h-5 w-5 text-amber-500" />
                   <h1 className="text-lg font-semibold text-foreground">Value Analysis</h1>
                 </div>
               </div>
@@ -101,17 +101,10 @@ export default function AnalyzePage() {
           </div>
 
           {/* Main Content */}
-          <div className="p-6">
-            {error ? (
-              <Card className="p-6">
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Data</h2>
-                  <p className="text-muted-foreground">{error}</p>
-                </div>
-              </Card>
-            ) : (
+          <div className="p-4">
+            <div className="max-w-7xl mx-auto space-y-4">
               <DifferenceAnalysis initialData={initialData} />
-            )}
+            </div>
           </div>
         </main>
       </SidebarProvider>

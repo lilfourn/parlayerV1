@@ -97,34 +97,30 @@ export function ProjectionList({ apiResponse }: { apiResponse: ApiResponse }) {
     return (
       <div className="container mx-auto py-6 px-4">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-          <span className="ml-3 text-gray-600">Loading projections...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+          <span className="ml-3 text-foreground">Loading projections...</span>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || projectionData.length === 0) {
     return (
       <div className="container mx-auto py-6 px-4">
-        <div className="text-center py-12">
-          <p className="text-red-500">{error}</p>
+        <div className="bg-gray-900/50 dark:bg-gray-900/50 rounded-lg p-6 backdrop-blur-sm">
+          <p className="text-center text-foreground">
+            {error || 'No projections available at this time.'}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      {projectionData && projectionData.length > 0 ? (
-        <ProjectionDisplay
-          projectionData={projectionData}
-        />
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No projections available.</p>
-        </div>
-      )}
+    <div className="container mx-auto py-6 px-4 space-y-4">
+      {projectionData.map((item, index) => (
+        <ProjectionDisplay key={item.projection.id} projectionData={[item]} />
+      ))}
     </div>
   );
 }

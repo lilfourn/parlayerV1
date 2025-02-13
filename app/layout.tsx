@@ -27,7 +27,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
       <body className={robotoMono.className} suppressHydrationWarning>
-        <main className="relative flex min-h-screen flex-col transition-colors duration-300" suppressHydrationWarning>
+        <div className="fixed inset-0 -z-10">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" />
+          <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-amber-500 to-amber-600 opacity-20 blur-[128px]" />
+          <div className="absolute bottom-0 left-0 right-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-amber-500 to-amber-600 opacity-20 blur-[128px]" />
+        </div>
+        <main className="relative flex min-h-screen flex-col bg-gray-900/50 dark:bg-gray-900/50 transition-colors duration-300" suppressHydrationWarning>
           <Providers>
             {children}
             <Toaster 

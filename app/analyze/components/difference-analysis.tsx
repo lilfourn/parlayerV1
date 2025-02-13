@@ -49,11 +49,11 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
-  const { toast } = useToast();
+  const [itemsPerPage, setItemsPerPage] = useState(24);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedProjection, setSelectedProjection] = useState<ProcessedProjection | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const processProjections = useCallback((response: ApiResponse) => {
     try {
@@ -213,331 +213,223 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
   };
 
   return (
-    <Card className="w-full bg-gradient-to-b from-background to-muted/20">
-      <CardHeader className="space-y-1 pb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-2xl">Projections</CardTitle>
-            </div>
-            <CardDescription className="text-muted-foreground">
-              Sorted by variance from historical averages
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-4 w-full sm:w-auto">
+    <div className="space-y-4">
+      {/* Controls Section */}
+      <div className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={fetchProjections}
               disabled={isLoading}
-              className="relative shrink-0"
+              className={cn(
+                "transition-all duration-200",
+                isLoading && "opacity-50"
+              )}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={cn(
+                "h-4 w-4 mr-2",
+                isLoading && "animate-spin"
+              )} />
+              Refresh
             </Button>
+            <span className="text-sm text-muted-foreground">
+              Last updated: {formatTime(lastRefreshed.toISOString())}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => setItemsPerPage(parseInt(value))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Items per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12">12 per page</SelectItem>
+                <SelectItem value="24">24 per page</SelectItem>
+                <SelectItem value="48">48 per page</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <div className="text-red-500 p-4 text-center rounded-lg bg-red-50 border border-red-100">
-            {error}
-          </div>
-        ) : (
-          <>
-            {/* Desktop View */}
-            <div className="hidden md:block rounded-lg border bg-card">
-              <Table className="bg-gray-900/50">
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[250px]">Player</TableHead>
-                    <TableHead>League</TableHead>
-                    <TableHead>Stat</TableHead>
-                    <TableHead className="text-right">Line</TableHead>
-                    <TableHead className="text-right">Average</TableHead>
-                    <TableHead className="text-right">Difference</TableHead>
-                    <TableHead className="text-right">Recommended</TableHead>
-                    <TableHead className="text-right">Start Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    Array.from({ length: itemsPerPage }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-8 w-[200px]" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : currentData.map((item) => (
-                    <TableRow 
-                      key={item.projection.id}
-                      className="group hover:bg-muted/50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedProjection(item);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <PlayerAvatar
-                            imageUrl={item.player?.attributes.image_url || undefined}
-                            name={item.player?.attributes.name || 'Unknown'}
-                            size={32}
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {item.player?.attributes.name || 'Unknown'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {item.player?.attributes.team || 'No Team'}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={`${
-                            item.player?.attributes.league === 'NBA' 
-                              ? 'bg-orange-50 text-orange-700 border-orange-200 group-hover:bg-orange-100' 
-                              : item.player?.attributes.league === 'NHL'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200 group-hover:bg-blue-100'
-                              : item.player?.attributes.league === 'MLB'
-                              ? 'bg-red-50 text-red-700 border-red-200 group-hover:bg-red-100'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 group-hover:bg-gray-100'
-                          }`}
-                        >
-                          {item.player?.attributes.league || 'Unknown'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.projection.attributes.stat_display_name}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {item.projection.attributes.line_score}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {item.statAverage?.attributes.average.toFixed(1)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge 
-                          variant="default"
-                          className={`
-                            ${Math.abs(item.percentageDiff) >= 15
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                              : Math.abs(item.percentageDiff) >= 5
-                                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                          `}
-                        >
-                          {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge 
-                          variant="outline"
-                          className={`
-                            ${item.percentageDiff > 0 
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                              : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
-                          `}
-                        >
-                          {item.percentageDiff > 0 ? 'LESS' : 'MORE'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {formatTime(item.projection.attributes.start_time)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+      </div>
 
-            {/* Mobile View */}
-            <div className="md:hidden space-y-4">
+      {/* Analysis Results */}
+      <div className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm rounded-lg">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-gray-900/60">
+                <TableHead className="w-[100px]">Player</TableHead>
+                <TableHead>League</TableHead>
+                <TableHead>Stat Type</TableHead>
+                <TableHead className="text-right">Line</TableHead>
+                <TableHead className="text-right">Average</TableHead>
+                <TableHead className="text-right">Difference</TableHead>
+                <TableHead className="text-right">Start Time</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
                 Array.from({ length: itemsPerPage }).map((_, i) => (
-                  <Card key={i} className="p-4">
-                    <Skeleton className="h-8 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </Card>
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-8 w-[200px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  </TableRow>
                 ))
               ) : currentData.map((item) => (
-                <div key={item.projection.id} onClick={() => {
-                  setSelectedProjection(item);
-                  setIsDialogOpen(true);
-                }}>
-                  <Collapsible
-                    open={expandedRows.has(item.projection.id)}
-                    onOpenChange={() => toggleRow(item.projection.id)}
+                <React.Fragment key={item.projection.id}>
+                  <TableRow 
+                    className={cn(
+                      "cursor-pointer hover:bg-gray-900/60 transition-colors",
+                      expandedRows.has(item.projection.id) && "bg-amber-500/20"
+                    )}
+                    onClick={() => {
+                      setSelectedProjection(item);
+                      setIsDialogOpen(true);
+                    }}
                   >
-                    <Card className="p-4 bg-gray-900/50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <PlayerAvatar
-                            imageUrl={item.player?.attributes.image_url || undefined}
-                            name={item.player?.attributes.name || 'Unknown'}
-                            size={40}
-                          />
-                          <div>
-                            <div className="font-medium">
-                              {item.player?.attributes.name || 'Unknown'}
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <PlayerAvatar
+                          imageUrl={item.player?.attributes.image_url || undefined}
+                          name={item.player?.attributes.name || 'Unknown'}
+                          size={32}
+                        />
+                        <span className="font-medium">
+                          {item.player?.attributes.name || 'Unknown'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-gray-900/30">
+                        {item.player?.attributes.league || 'Unknown'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{item.projection.attributes.stat_display_name}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {item.projection.attributes.line_score}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {item.statAverage?.attributes.average.toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge 
+                        variant="default"
+                        className={`
+                          ${Math.abs(item.percentageDiff) >= 15
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                            : Math.abs(item.percentageDiff) >= 5
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                        `}
+                      >
+                        {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatTime(item.projection.attributes.start_time)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleRow(item.projection.id);
+                        }}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            expandedRows.has(item.projection.id) && "transform rotate-180"
+                          )}
+                        />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  {expandedRows.has(item.projection.id) && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="p-0">
+                        <div className="bg-gray-900/30 p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Player Stats</h4>
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">
+                                  Games Played: {item.stats?.attributes.games_played || 'N/A'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Standard Deviation: {item.stats?.attributes.standard_deviation?.toFixed(2) || 'N/A'}
+                                </p>
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {item.player?.attributes.team || 'No Team'}
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Projection Details</h4>
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">
+                                  Game Time: {formatTime(item.projection.attributes.start_time)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Status: {item.projection.attributes.status}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ChevronDown className={cn(
-                              "h-4 w-4 transition-transform duration-200",
-                              expandedRows.has(item.projection.id) && "transform rotate-180"
-                            )} />
-                          </Button>
-                        </CollapsibleTrigger>
-                      </div>
-                      
-                      <div className="mt-2 flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`${
-                            item.player?.attributes.league === 'NBA' 
-                              ? 'bg-orange-50 text-orange-700 border-orange-200' 
-                              : item.player?.attributes.league === 'NHL'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : item.player?.attributes.league === 'MLB'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-gray-50 text-gray-700 border-gray-200'
-                          }`}
-                        >
-                          {item.player?.attributes.league || 'Unknown'}
-                        </Badge>
-                        <Badge 
-                          variant="default"
-                          className={`
-                            ${Math.abs(item.percentageDiff) >= 15
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : Math.abs(item.percentageDiff) >= 5
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-gray-100 text-gray-700'}
-                          `}
-                        >
-                          {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
-                        </Badge>
-                      </div>
-
-                      <CollapsibleContent className="mt-4 space-y-2">
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Stat</div>
-                          <div>{item.projection.attributes.stat_display_name}</div>
-                          
-                          <div className="text-muted-foreground">Line</div>
-                          <div className="font-medium">{item.projection.attributes.line_score}</div>
-                          
-                          <div className="text-muted-foreground">Average</div>
-                          <div>{item.statAverage?.attributes.average.toFixed(1)}</div>
-                          
-                          <div className="text-muted-foreground">Difference</div>
-                          <div>
-                            <Badge 
-                              variant="default"
-                              className={`
-                                ${Math.abs(item.percentageDiff) >= 15
-                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                                  : Math.abs(item.percentageDiff) >= 5
-                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                              `}
-                            >
-                              {item.percentageDiff > 0 ? '+' : ''}{item.percentageDiff.toFixed(1)}%
-                            </Badge>
-                          </div>
-                          
-                          <div className="text-muted-foreground">Recommended</div>
-                          <div>
-                            <Badge 
-                              variant="outline"
-                              className={`
-                                ${item.percentageDiff > 0 
-                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
-                              `}
-                            >
-                              {item.percentageDiff > 0 ? 'LESS' : 'MORE'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="text-muted-foreground">Time</div>
-                          <div>{formatTime(item.projection.attributes.start_time)}</div>
-                        </div>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))}
-            </div>
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-            {!isLoading && currentData.length === 0 && (
-              <div className="text-center py-8">
-                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                  <TrendingUp className="h-8 w-8 mb-2 opacity-50" />
-                  <span>No projections found</span>
-                </div>
-              </div>
-            )}
-            
-            {/* Pagination Controls */}
-            <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 space-x-0 sm:space-x-2 py-4">
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {startIndex + 1}-{Math.min(endIndex, projectionData?.length || 0)} of {projectionData?.length || 0}
-              </div>
-              <div className="flex items-center space-x-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="text-sm text-muted-foreground px-2 min-w-[80px] text-center">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      {/* Pagination */}
+      <div className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      </div>
 
-            <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-              Last updated: {lastRefreshed.toLocaleTimeString()}
-            </div>
-
-            {/* Projection Dialog */}
-            <ProjectionDialog
-              projection={selectedProjection}
-              isOpen={isDialogOpen}
-              onClose={() => {
-                setIsDialogOpen(false);
-                setSelectedProjection(null);
-              }}
-            />
-          </>
-        )}
-      </CardContent>
-    </Card>
+      {/* Projection Dialog */}
+      <ProjectionDialog
+        projection={selectedProjection}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+      />
+    </div>
   );
 }

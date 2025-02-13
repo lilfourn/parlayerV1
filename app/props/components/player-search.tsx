@@ -5,13 +5,15 @@ import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { ProjectionWithAttributes } from '@/types/props';
 import debounce from 'lodash/debounce';
+import cn from 'classnames';
 
 interface PlayerSearchProps {
   projections: ProjectionWithAttributes[];
   onSearch: (searchTerm: string) => void;
+  className?: string;
 }
 
-export function PlayerSearch({ projections, onSearch }: PlayerSearchProps) {
+export function PlayerSearch({ projections, onSearch, className }: PlayerSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Debounce the search to avoid too many re-renders
@@ -36,7 +38,7 @@ export function PlayerSearch({ projections, onSearch }: PlayerSearchProps) {
   }, [debouncedSearch]);
 
   return (
-    <div className="w-full bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg">
+    <div className={cn("w-full bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg", className)}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input

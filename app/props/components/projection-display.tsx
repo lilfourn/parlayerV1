@@ -409,122 +409,101 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
       <PlayerSearch 
         projections={projectionData}
         onSearch={handleSearch}
+        className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg"
       />
 
-      {/* League Navigation - Hide when searching */}
-      {!searchTerm && (
-        <>
-          <LeagueNav
-            leagues={LEAGUE_CONFIG}
-            selectedLeague={selectedLeague}
-            onLeagueSelect={(league: string) => {
-              setSelectedLeague(league);
-              const types = getLeagueStatTypes(projectionData, league);
-              if (types.length > 0) {
-                setSelectedStatType(types[0]);
-              } else {
-                setSelectedStatType('');
-              }
-            }}
-          />
-
-          {/* Stat Type Filter */}
-          <div className="flex items-center gap-2 mb-4">
-            <Label>Stat Type:</Label>
-            <select
-              value={selectedStatType}
-              onChange={(e) => setSelectedStatType(e.target.value)}
-              className="p-2 border rounded-md"
-            >
-              {statTypes.map((type) => (
-                <option key={type} value={type}>
-                  {getStatTypeDisplayName(type)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </>
-      )}
-
-      {/* Results Count */}
-      <div className="text-sm text-gray-600 mb-2">
-        Showing {filteredData.length} {filteredData.length === 1 ? 'projection' : 'projections'}
-        {searchTerm && (
-          <>
-            {' '}matching "{searchTerm}"
-            {filteredData.length > 0 && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="ml-2 text-primary hover:text-primary/80 underline"
-              >
-                Clear search
-              </button>
-            )}
-          </>
-        )}
+      {/* League Navigation */}
+      <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg p-4">
+        <LeagueNav
+          leagues={LEAGUE_CONFIG}
+          selectedLeague={selectedLeague}
+          onLeagueSelect={(league: string) => {
+            setSelectedLeague(league);
+            const types = getLeagueStatTypes(projectionData, league);
+            if (types.length > 0) {
+              setSelectedStatType(types[0]);
+            } else {
+              setSelectedStatType('');
+            }
+          }}
+        />
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border bg-background dark:bg-gray-900/50">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead 
-                    key={header.id}
-                    className="whitespace-nowrap"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className="flex items-center gap-1">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+      {/* Stat Type Selection */}
+      {statTypes.length > 0 && (
+        <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg p-4">
+          <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            {statTypes.map((type) => (
+              <Button
+                key={type}
+                size="sm"
+                onClick={() => setSelectedStatType(type)}
+                className={cn(
+                  "transition-colors duration-200",
+                  selectedStatType === type
+                    ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+                    : "bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-black dark:text-white"
+                )}
+              >
+                {getStatTypeDisplayName(type)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Projections Table */}
+      <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-gray-900/60">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="text-foreground/70"
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className="flex items-center space-x-2">
+                          <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                          {header.column.getIsSorted() && (
+                            <span>
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </span>
                           )}
-                      {header.column.getIsSorted() === "asc" ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : header.column.getIsSorted() === "desc" ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : null}
-                    </div>
-                  </TableHead>
+                        </div>
+                      )}
+                    </TableHead>
+                  ))
                 ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   className={cn(
-                    "cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-800/50",
-                    selectedProjectionId === row.original.projection.id ? 'bg-muted dark:bg-gray-800/50' : ''
+                    "hover:bg-gray-900/60 transition-colors",
+                    selectedProjectionId === row.original.projection.id && "bg-amber-500/20"
                   )}
                   onClick={() => onProjectionSelect?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="text-foreground/90">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No projections found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

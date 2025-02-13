@@ -18,7 +18,7 @@ import { BetSlip } from '@/components/dashboard/bet-slip';
 
 // Error display component
 const AnalysisErrorDisplay = () => (
-  <Card className="mt-4 border-destructive">
+  <Card className="mt-4 border-destructive bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
     <CardContent className="pt-6 text-destructive">
       Failed to display analysis. Showing raw data...
     </CardContent>
@@ -27,8 +27,8 @@ const AnalysisErrorDisplay = () => (
 
 interface ProjectionDialogProps {
   projection: ProcessedProjection | null;
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 interface ProjectionDialogState {
@@ -37,7 +37,7 @@ interface ProjectionDialogState {
   analysis?: AnalysisResponse;
 }
 
-export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDialogProps) {
+export function ProjectionDialog({ projection, open, onOpenChange }: ProjectionDialogProps) {
   const [state, setState] = useState<ProjectionDialogState>({
     isAnalyzing: false
   });
@@ -163,7 +163,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
       error: undefined,
       analysis: undefined
     });
-    onClose();
+    onOpenChange(false);
   };
 
   const getRecommendationColor = (recommendation: AnalysisResponse['recommendation']) => {
@@ -240,7 +240,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
       {/* Stats */}
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="text-2xl font-bold">
                 {projection.projection.attributes.line_score}
@@ -252,7 +252,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -265,7 +265,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="text-sm font-medium">Status</div>
               <div className="mt-1">
@@ -276,7 +276,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="text-sm font-medium">Odds Type</div>
               <div className="mt-1">
@@ -323,7 +323,7 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
           </ErrorBoundary>
         )}
         {state.error && (
-          <Card className="border-destructive">
+          <Card className="border-destructive bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm">
             <CardContent className="pt-6 text-destructive">
               {state.error}
             </CardContent>
@@ -334,8 +334,8 @@ export function ProjectionDialog({ projection, isOpen, onClose }: ProjectionDial
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <PlayerAvatar

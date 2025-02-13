@@ -2,6 +2,7 @@
 
 import { memo, useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -90,19 +91,26 @@ export const SportsDisplay = memo(function SportsDisplay({
           {sports.map((sport) => (
             <TableRow 
               key={sport.key}
-              className={`${onSportSelect ? 'cursor-pointer hover:bg-gray-50' : ''} ${
-                selectedSport === sport.key ? 'bg-blue-50' : ''
-              }`}
+              className={cn(
+                onSportSelect && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                selectedSport === sport.key && "bg-amber-500/20 hover:bg-amber-500/30"
+              )}
               onClick={() => onSportSelect?.(sport.key)}
             >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   <span>{getSportIcon(sport.key)}</span>
-                  <span>{sport.key}</span>
+                  <span className={cn(
+                    selectedSport === sport.key && "text-amber-500"
+                  )}>{sport.key}</span>
                 </div>
               </TableCell>
-              <TableCell>{sport.title}</TableCell>
-              <TableCell>{sport.group}</TableCell>
+              <TableCell className={cn(
+                selectedSport === sport.key && "text-amber-500"
+              )}>{sport.title}</TableCell>
+              <TableCell className={cn(
+                selectedSport === sport.key && "text-amber-500"
+              )}>{sport.group}</TableCell>
               <TableCell>
                 <span className={`px-2 py-1 rounded-full text-sm ${
                   sport.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
