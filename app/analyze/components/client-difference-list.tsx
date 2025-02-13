@@ -6,6 +6,7 @@ import { DifferenceCard } from './difference-card';
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -141,56 +142,76 @@ export function ClientDifferenceList({ initialData }: ClientDifferenceListProps)
       .sort((a, b) => b.absDiff - a.absDiff);
   }, [minDifference]);
 
-  const differences = getLargestDifferences(projectionData);
+  const filteredProjections = getLargestDifferences(projectionData);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Select
-            value={minDifference.toString()}
-            onValueChange={(value) => setMinDifference(Number(value))}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Min difference" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">≥ 10% Difference</SelectItem>
-              <SelectItem value="15">≥ 15% Difference</SelectItem>
-              <SelectItem value="20">≥ 20% Difference</SelectItem>
-              <SelectItem value="25">≥ 25% Difference</SelectItem>
-              <SelectItem value="30">≥ 30% Difference</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="text-sm text-gray-500">
-            Found {differences.length} projections
+    <div className="space-y-4">
+      {/* Controls Section */}
+      <div className="bg-white/85 dark:bg-gray-900/75 border border-slate-200/50 dark:border-slate-800/50 shadow-sm backdrop-blur-md rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={fetchProjections} 
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Last updated: {lastRefreshed.toLocaleTimeString()}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">Min Difference:</Label>
+            <Select
+              value={minDifference.toString()}
+              onValueChange={(value) => setMinDifference(Number(value))}
+            >
+              <SelectTrigger className="w-[120px] bg-white/50 dark:bg-gray-800/50">
+                <SelectValue placeholder="Select %" />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 10, 15, 20, 25, 30].map((value) => (
+                  <SelectItem 
+                    key={value} 
+                    value={value.toString()}
+                    className="cursor-pointer"
+                  >
+                    {value}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchProjections}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {differences.map((item) => (
-          <DifferenceCard key={item.projection.id} projection={item} />
-        ))}
-        {differences.length === 0 && (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            No projections found with difference ≥{minDifference}%
+        {error && (
+          <div className="mt-4 p-4 bg-destructive/15 text-destructive rounded-lg">
+            {error}
           </div>
         )}
       </div>
 
-      <div className="text-xs text-gray-500">
-        Last updated: {lastRefreshed.toLocaleTimeString()}
+      {/* Differences Grid */}
+      <div className="bg-white/85 dark:bg-gray-900/75 border border-slate-200/50 dark:border-slate-800/50 shadow-sm backdrop-blur-md rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProjections.map((projection) => (
+            <DifferenceCard 
+              key={projection.projection.id} 
+              projection={projection}
+            />
+          ))}
+        </div>
+        
+        {filteredProjections.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No differences found matching the current criteria.
+          </div>
+        )}
       </div>
     </div>
   );

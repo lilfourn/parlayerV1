@@ -215,7 +215,7 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
   return (
     <div className="space-y-4">
       {/* Controls Section */}
-      <div className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm rounded-lg p-4">
+      <div className="bg-white/85 dark:bg-gray-900/75 border border-slate-200/50 dark:border-slate-800/50 shadow-sm backdrop-blur-md rounded-lg p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Button
@@ -257,11 +257,11 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
       </div>
 
       {/* Analysis Results */}
-      <div className="bg-gray-900/50 dark:bg-gray-900/50 border border-border shadow-sm backdrop-blur-sm rounded-lg">
+      <div className="bg-white/85 dark:bg-gray-900/75 border border-slate-200/50 dark:border-slate-800/50 shadow-sm backdrop-blur-md rounded-lg">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-gray-900/60">
+              <TableRow className="hover:bg-slate-200/50 dark:hover:bg-gray-900/60">
                 <TableHead className="w-[100px]">Player</TableHead>
                 <TableHead>League</TableHead>
                 <TableHead>Stat Type</TableHead>
@@ -290,7 +290,7 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                 <React.Fragment key={item.projection.id}>
                   <TableRow 
                     className={cn(
-                      "cursor-pointer hover:bg-gray-900/60 transition-colors",
+                      "cursor-pointer hover:bg-slate-200/50 dark:hover:bg-gray-900/60 transition-colors",
                       expandedRows.has(item.projection.id) && "bg-amber-500/20"
                     )}
                     onClick={() => {
@@ -367,10 +367,10 @@ export function DifferenceAnalysis({ initialData }: DifferenceAnalysisProps) {
                               <h4 className="text-sm font-medium mb-2">Player Stats</h4>
                               <div className="space-y-2">
                                 <p className="text-sm text-muted-foreground">
-                                  Games Played: {item.stats?.attributes.games_played || 'N/A'}
+                                  Games Played: {item.statAverage?.attributes.count || 'N/A'}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  Standard Deviation: {item.stats?.attributes.standard_deviation?.toFixed(2) || 'N/A'}
+                                  Standard Deviation: {item.statAverage?.attributes.min_value?.toFixed(2) || 'N/A'}
                                 </p>
                               </div>
                             </div>

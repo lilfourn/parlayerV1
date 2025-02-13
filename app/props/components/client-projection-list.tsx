@@ -294,103 +294,107 @@ export function ClientProjectionList({
   }, [currentStatType, projectionData]);
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={refreshProjections} 
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Last updated: {lastRefreshed.toLocaleTimeString()}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setIsSelectionMode(!isSelectionMode);
-              if (!isSelectionMode) {
-                setSelectedProjections(new Set());
-                setBatchResults([]);
-              }
-            }}
-          >
-            <CheckSquare className="h-4 w-4 mr-2" />
-            {isSelectionMode ? "Exit Selection" : "Select Multiple"}
-          </Button>
-          {isSelectionMode && (
-            <>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 bg-white/85 dark:bg-gray-900/75 rounded-lg p-4 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
+          {error && (
+            <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md">
+              {error}
+            </div>
+          )}
+          
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={refreshProjections} 
+                disabled={isLoading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Last updated: {lastRefreshed.toLocaleTimeString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSelectAllForCurrentStat}
-                disabled={!currentStatType}
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (!isSelectionMode) {
+                    setSelectedProjections(new Set());
+                    setBatchResults([]);
+                  }
+                }}
               >
-                <ListPlus className="h-4 w-4 mr-2" />
-                Select All {currentStatType}
+                <CheckSquare className="h-4 w-4 mr-2" />
+                {isSelectionMode ? "Exit Selection" : "Select Multiple"}
               </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleBatchAnalyze}
-                disabled={isBatchAnalyzing || selectedProjections.size === 0}
-              >
-                {isBatchAnalyzing ? "Analyzing..." : "Analyze Selected"}
-              </Button>
-            </>
+              {isSelectionMode && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAllForCurrentStat}
+                    disabled={!currentStatType}
+                  >
+                    <ListPlus className="h-4 w-4 mr-2" />
+                    Select All {currentStatType}
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleBatchAnalyze}
+                    disabled={isBatchAnalyzing || selectedProjections.size === 0}
+                  >
+                    {isBatchAnalyzing ? "Analyzing..." : "Analyze Selected"}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <ProjectionDisplay
+            projectionData={projectionData}
+            onProjectionSelect={(projection: ProjectionWithAttributes) => {
+              if (isSelectionMode) {
+                toggleProjectionSelection(projection);
+              } else {
+                setSelectedProjection(projection);
+                setIsDialogOpen(true);
+              }
+            }}
+            isSelectionMode={isSelectionMode}
+            selectedProjections={selectedProjections}
+            onStatTypeChange={(statType: string | null) => setCurrentStatType(statType)}
+          />
+
+          <ProjectionDialog 
+            projection={selectedProjection ? transformToProcessedProjection(selectedProjection) : null}
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+            }}
+          />
+
+          {batchResults.length > 0 && (
+            <div 
+              id="batch-analysis-results" 
+              className="mt-8 scroll-mt-24" // Add padding for smooth scroll
+            >
+              <BatchAnalysisResults 
+                results={batchResults}
+                isAnalyzing={isBatchAnalyzing}
+                onClearResults={handleClearResults}
+              />
+            </div>
           )}
         </div>
       </div>
-
-      <ProjectionDisplay
-        projectionData={projectionData}
-        onProjectionSelect={(projection: ProjectionWithAttributes) => {
-          if (isSelectionMode) {
-            toggleProjectionSelection(projection);
-          } else {
-            setSelectedProjection(projection);
-            setIsDialogOpen(true);
-          }
-        }}
-        isSelectionMode={isSelectionMode}
-        selectedProjections={selectedProjections}
-        onStatTypeChange={(statType: string | null) => setCurrentStatType(statType)}
-      />
-
-      <ProjectionDialog 
-        projection={selectedProjection ? transformToProcessedProjection(selectedProjection) : null}
-        isOpen={isDialogOpen}
-        onClose={() => {
-          setIsDialogOpen(false);
-        }}
-      />
-
-      {batchResults.length > 0 && (
-        <div 
-          id="batch-analysis-results" 
-          className="mt-8 scroll-mt-24" // Add padding for smooth scroll
-        >
-          <BatchAnalysisResults 
-            results={batchResults}
-            isAnalyzing={isBatchAnalyzing}
-            onClearResults={handleClearResults}
-          />
-        </div>
-      )}
     </div>
   );
 }

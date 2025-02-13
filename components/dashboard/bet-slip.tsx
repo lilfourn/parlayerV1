@@ -23,8 +23,8 @@ export function BetSlip() {
   return (
     <Card 
       className={cn(
-        "fixed bottom-4 right-4 w-96 bg-background shadow-lg rounded-lg overflow-hidden",
-        isMaxed && "ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
+        "fixed bottom-4 right-4 w-96 bg-background rounded-lg overflow-hidden shadow-[inset_0_0_12px_rgba(59,130,246,0.02),0_0_12px_rgba(59,130,246,0.06),0_0_25px_rgba(59,130,246,0.04),0_0_50px_rgba(59,130,246,0.02)]",
+        isMaxed && "ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background shadow-[0_0_12px_-3px_rgba(245,158,11,0.3)]"
       )}
     >
       <motion.div 

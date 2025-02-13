@@ -32,6 +32,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import cn from 'classnames';
 
 // League configuration with icons and display names
@@ -406,14 +407,16 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
   return (
     <div className="space-y-4">
       {/* Search Bar */}
-      <PlayerSearch 
-        projections={projectionData}
-        onSearch={handleSearch}
-        className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg"
-      />
+      <div className="bg-white/85 dark:bg-gray-900/75 rounded-lg p-4 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
+        <PlayerSearch 
+          projections={projectionData}
+          onSearch={handleSearch}
+          className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg"
+        />
+      </div>
 
       {/* League Navigation */}
-      <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg p-4">
+      <div className="bg-white/85 dark:bg-gray-900/75 rounded-lg p-4 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
         <LeagueNav
           leagues={LEAGUE_CONFIG}
           selectedLeague={selectedLeague}
@@ -431,33 +434,38 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
 
       {/* Stat Type Selection */}
       {statTypes.length > 0 && (
-        <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg p-4">
-          <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-            {statTypes.map((type) => (
-              <Button
-                key={type}
-                size="sm"
-                onClick={() => setSelectedStatType(type)}
-                className={cn(
-                  "transition-colors duration-200",
-                  selectedStatType === type
-                    ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
-                    : "bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-black dark:text-white"
-                )}
-              >
-                {getStatTypeDisplayName(type)}
-              </Button>
-            ))}
-          </div>
+        <div className="bg-white/85 dark:bg-gray-900/75 rounded-lg p-4 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">Stat Type:</Label>
+          <Select
+            value={selectedStatType || ""}
+            onValueChange={(value) => setSelectedStatType(value)}
+          >
+            <SelectTrigger className="w-[200px] bg-white/50 dark:bg-gray-800/50">
+              <SelectValue placeholder="Select stat type" />
+            </SelectTrigger>
+            <SelectContent>
+              {statTypes.map((type) => (
+                <SelectItem 
+                  key={type} 
+                  value={type}
+                  className="cursor-pointer"
+                >
+                  {getStatTypeDisplayName(type)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
       )}
 
       {/* Projections Table */}
-      <div className="bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-lg">
-        <div className="overflow-x-auto">
+      <div className="bg-white/85 dark:bg-gray-900/75 rounded-lg p-4 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
+        <div className="relative overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-gray-900/60">
+              <TableRow className="hover:bg-white/50 dark:hover:bg-gray-900/60">
                 {table.getHeaderGroups().map((headerGroup) => (
                   headerGroup.headers.map((header) => (
                     <TableHead
@@ -485,22 +493,31 @@ export const ProjectionDisplay = memo(function ProjectionDisplay({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    "hover:bg-gray-900/60 transition-colors",
-                    selectedProjectionId === row.original.projection.id && "bg-amber-500/20"
-                  )}
-                  onClick={() => onProjectionSelect?.(row.original)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-foreground/90">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={cn(
+                      "cursor-pointer hover:bg-white/50 dark:hover:bg-gray-900/60",
+                      selectedProjectionId === row.original.projection.id && "bg-white/30 dark:bg-gray-900/30"
+                    )}
+                    onClick={() => onProjectionSelect?.(row.original)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="text-foreground/90">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={visibleColumns.length}>
+                    <div className="text-center p-4">No projections found.</div>
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>

@@ -14,23 +14,25 @@ export default function Dashboard(){
             <SidebarProvider>
                 <AppSidebar />
                 <main className="flex-1 relative overflow-y-auto">
-                    <div className="sticky top-0 z-10 bg-gray-900/50 dark:bg-gray-900/50 backdrop-blur supports-[backdrop-filter]:bg-gray-900/50">
-                        <div className="flex items-center justify-between h-14 px-4 border-b border-border">
-                            <div className="flex items-center space-x-4">
-                                <SidebarTrigger />
-                                <motion.div 
-                                    className="flex items-center space-x-4"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                >
-                                    <LayoutDashboard className="h-5 w-5 text-foreground" />
-                                    <h1 className="text-lg font-semibold text-foreground">
-                                        Dashboard
-                                    </h1>
-                                </motion.div>
+                    <div className="sticky top-0 z-10 m-4">
+                        <div className="rounded-lg bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50">
+                            <div className="flex items-center justify-between h-14 px-4">
+                                <div className="flex items-center space-x-4">
+                                    <SidebarTrigger />
+                                    <motion.div 
+                                        className="flex items-center space-x-4"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <LayoutDashboard className="h-5 w-5 text-slate-900 dark:text-slate-100" />
+                                        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                            Dashboard
+                                        </h1>
+                                    </motion.div>
+                                </div>
+                                <ThemeToggle />
                             </div>
-                            <ThemeToggle />
                         </div>
                     </div>
 

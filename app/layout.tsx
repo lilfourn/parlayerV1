@@ -27,12 +27,35 @@ export default function RootLayout({
   return (
     <html lang="en" className={robotoMono.variable} suppressHydrationWarning>
       <body className={robotoMono.className} suppressHydrationWarning>
-        <div className="fixed inset-0 -z-10">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" />
-          <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-amber-500 to-amber-600 opacity-20 blur-[128px]" />
-          <div className="absolute bottom-0 left-0 right-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-amber-500 to-amber-600 opacity-20 blur-[128px]" />
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-blue-50/90 dark:from-black dark:via-black dark:to-blue-950/30" />
+          
+          {/* Primary glow effects */}
+          <div className="absolute -top-[40%] -left-[20%] h-[1000px] w-[1000px] animate-glow-pulse">
+            <div className="absolute inset-0 bg-gradient-radial-to-br from-blue-500/30 via-blue-400/20 to-transparent blur-3xl dark:from-blue-400/20 dark:via-blue-400/10" />
+          </div>
+          <div className="absolute -bottom-[40%] -right-[20%] h-[1000px] w-[1000px] animate-glow-pulse [animation-delay:5s]">
+            <div className="absolute inset-0 bg-gradient-radial-to-tl from-blue-500/30 via-blue-400/20 to-transparent blur-3xl dark:from-blue-400/20 dark:via-blue-400/10" />
+          </div>
+          
+          {/* Secondary glow accents */}
+          <div className="absolute top-[10%] right-[5%] h-[500px] w-[500px] animate-glow-pulse [animation-delay:2.5s]">
+            <div className="absolute inset-0 bg-gradient-radial from-blue-400/25 via-blue-300/15 to-transparent blur-2xl dark:from-blue-300/15 dark:via-blue-300/10" />
+          </div>
+          <div className="absolute bottom-[10%] left-[5%] h-[500px] w-[500px] animate-glow-pulse [animation-delay:7.5s]">
+            <div className="absolute inset-0 bg-gradient-radial from-blue-400/25 via-blue-300/15 to-transparent blur-2xl dark:from-blue-300/15 dark:via-blue-300/10" />
+          </div>
+          
+          {/* Subtle corner accents */}
+          <div className="absolute top-0 right-0 h-[300px] w-[300px] animate-glow-pulse [animation-delay:1.25s]">
+            <div className="absolute inset-0 bg-gradient-radial-to-bl from-blue-300/20 via-blue-200/10 to-transparent blur-xl dark:from-blue-200/10 dark:via-blue-200/5" />
+          </div>
+          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] animate-glow-pulse [animation-delay:6.25s]">
+            <div className="absolute inset-0 bg-gradient-radial-to-tr from-blue-300/20 via-blue-200/10 to-transparent blur-xl dark:from-blue-200/10 dark:via-blue-200/5" />
+          </div>
         </div>
-        <main className="relative flex min-h-screen flex-col bg-gray-900/50 dark:bg-gray-900/50 transition-colors duration-300" suppressHydrationWarning>
+        <main className="relative flex min-h-screen flex-col bg-transparent transition-colors duration-300" suppressHydrationWarning>
           <Providers>
             {children}
             <Toaster 

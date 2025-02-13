@@ -4,6 +4,7 @@ import { ProjectionWithAttributes } from "@/types/props";
 import { Card } from "@/components/ui/card";
 import { PlayerAvatar } from "@/app/props/components/player-avatar";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface DifferenceCardProps {
   projection: ProjectionWithAttributes;
@@ -22,10 +23,18 @@ export function DifferenceCard({ projection }: DifferenceCardProps) {
   const absDiff = Math.abs(diff);
   const intensity = Math.min(absDiff / 30, 1);
   
+  const isPositive = diff > 0;
+  const colorClass = isPositive 
+    ? "from-green-500/20 to-green-500/5 dark:from-green-500/30 dark:to-green-500/5"
+    : "from-red-500/20 to-red-500/5 dark:from-red-500/30 dark:to-red-500/5";
+  
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden bg-white/85 dark:bg-gray-900/75 border border-slate-200/50 dark:border-slate-800/50 shadow-sm backdrop-blur-md">
       <div
-        className="p-4"
+        className={cn(
+          "p-4 bg-gradient-to-b",
+          colorClass
+        )}
         style={{
           backgroundColor: `rgba(34, 197, 94, ${intensity * 0.15})`
         }}
@@ -38,36 +47,39 @@ export function DifferenceCard({ projection }: DifferenceCardProps) {
               size={40}
             />
             <div>
-              <div className="font-medium">{player.name}</div>
-              <div className="text-sm text-gray-500">
+              <div className="font-medium text-foreground">{player.name}</div>
+              <div className="text-sm text-muted-foreground">
                 {projectionData.stat_display_name}
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">
+            <div className={cn(
+              "text-2xl font-bold",
+              isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+            )}>
               {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-500">difference</div>
+            <div className="text-sm text-muted-foreground">difference</div>
           </div>
         </div>
-      </div>
-      <div className="p-4 grid grid-cols-3 gap-4 text-center">
-        <div>
-          <div className="text-sm text-gray-500">Line</div>
-          <div className="font-semibold">{lineScore}</div>
+        
+        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <div className="text-muted-foreground">Average</div>
+            <div className="font-medium text-foreground">{avgValue.toFixed(1)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Line</div>
+            <div className="font-medium text-foreground">{lineScore.toFixed(1)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Start</div>
+            <div className="font-medium text-foreground">
+              {format(new Date(projectionData.start_time), 'h:mm a')}
+            </div>
+          </div>
         </div>
-        <div>
-          <div className="text-sm text-gray-500">Average</div>
-          <div className="font-semibold">{avgValue.toFixed(1)}</div>
-        </div>
-        <div>
-          <div className="text-sm text-gray-500">Games</div>
-          <div className="font-semibold">{stats.count}</div>
-        </div>
-      </div>
-      <div className="px-4 pb-4 text-xs text-gray-500">
-        Start: {format(new Date(projectionData.start_time), 'MMM d, h:mm a')}
       </div>
     </Card>
   );

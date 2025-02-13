@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface BetSlip {
   id: string;
@@ -46,56 +47,40 @@ function BetSlipCard({ slip }: { slip: BetSlip }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="mb-4 relative overflow-hidden backdrop-blur-sm border border-border bg-gray-900/50 dark:bg-gray-900/50">
-        <CardHeader>
+      <Card className="card" data-active={slip.status === 'active'}>
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold text-foreground">
-              Bet Slip #{slip.id}
-            </CardTitle>
-            <Badge className={config.badge}>
-              {slip.status === 'active' && <Sparkles className="w-3 h-3 mr-1" />}
-              {slip.status === 'won' && <Check className="w-3 h-3 mr-1" />}
-              {slip.status === 'lost' && <X className="w-3 h-3 mr-1" />}
-              {slip.status.toUpperCase()}
+            <Badge variant="secondary" className={config.badge}>
+              {slip.status.charAt(0).toUpperCase() + slip.status.slice(1)}
             </Badge>
+            <span className="text-sm text-muted-foreground">{slip.date}</span>
           </div>
-          <CardDescription className="text-muted-foreground">{slip.date}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {slip.selections.map((selection, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex justify-between items-center text-sm bg-muted/50 dark:bg-muted/10 p-3 rounded-lg"
-              >
-                <span className="text-muted-foreground">{selection.game}</span>
-                <span className="font-medium text-foreground">
-                  {selection.pick} ({selection.odds})
-                </span>
-              </motion.div>
+              <div key={index} className="space-y-1">
+                <div className="text-sm font-medium">{selection.game}</div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{selection.pick}</span>
+                  <span>{selection.odds}</span>
+                </div>
+              </div>
             ))}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="space-y-1">
+                <span className="text-sm text-muted-foreground">Stake</span>
+                <p className="font-medium">${slip.amount}</p>
+              </div>
+              <div className="space-y-1 text-right">
+                <span className="text-sm text-muted-foreground">Potential Win</span>
+                <p className={cn("font-medium", config.color)}>${slip.potentialWinnings}</p>
+              </div>
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between bg-muted/50 dark:bg-muted/10 p-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Bet Amount</p>
-            <p className={`text-lg font-bold ${config.color}`}>
-              ${slip.amount}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Potential Winnings</p>
-            <p className={`text-lg font-bold ${config.color}`}>
-              ${slip.potentialWinnings}
-            </p>
-          </div>
-        </CardFooter>
       </Card>
     </motion.div>
   );
@@ -127,39 +112,54 @@ export function BetSlipsManager() {
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-xl p-6 border border-border backdrop-blur-sm bg-gray-900/50 dark:bg-gray-900/50">
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4 bg-white/5 backdrop-blur-sm">
-          <TabsTrigger 
-            value="active"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-amber-600"
-          >
-            Active Slips
-          </TabsTrigger>
-          <TabsTrigger 
-            value="past"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-amber-600"
-          >
-            Past Slips
-          </TabsTrigger>
-        </TabsList>
-        <AnimatePresence mode="wait">
-          <TabsContent key="active" value="active">
-            <ScrollArea className="h-[600px] pr-4">
-              {dummySlips.filter(slip => slip.status === 'active').map(slip => (
-                <BetSlipCard key={slip.id} slip={slip} />
-              ))}
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent key="past" value="past">
-            <ScrollArea className="h-[600px] pr-4">
-              {dummySlips.filter(slip => slip.status !== 'active').map(slip => (
-                <BetSlipCard key={slip.id} slip={slip} />
-              ))}
-            </ScrollArea>
-          </TabsContent>
-        </AnimatePresence>
-      </Tabs>
+    <div className="bet-slips-container">
+      <Card className="relative border-blue-500/10">
+        {/* Organic gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-blue-500/[0.03] to-background" />
+        <div className="absolute inset-0 bg-gradient-radial from-blue-500/[0.05] via-transparent to-transparent blur-xl" />
+        
+        {/* Content */}
+        <div className="relative">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Bet Slips</CardTitle>
+            <CardDescription>Manage your active and settled bets</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="active" className="flex-1">Active</TabsTrigger>
+                <TabsTrigger value="settled" className="flex-1">Settled</TabsTrigger>
+              </TabsList>
+              <TabsContent value="active" className="mt-4">
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-6 px-6 pb-6">
+                    <AnimatePresence>
+                      {dummySlips
+                        .filter(slip => slip.status === 'active')
+                        .map(slip => (
+                          <BetSlipCard key={slip.id} slip={slip} />
+                        ))}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+              <TabsContent value="settled" className="mt-4">
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-6 px-6 pb-6">
+                    <AnimatePresence>
+                      {dummySlips
+                        .filter(slip => slip.status !== 'active')
+                        .map(slip => (
+                          <BetSlipCard key={slip.id} slip={slip} />
+                        ))}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </div>
+      </Card>
     </div>
   );
 }

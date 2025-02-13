@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface League {
   id: string;
@@ -20,22 +21,28 @@ export const LeagueNav = memo(function LeagueNav({
   selectedLeague,
   onLeagueSelect,
 }: LeagueNavProps) {
+  const handleLeagueClick = (league: string) => {
+    onLeagueSelect(league);
+  };
+
   return (
-    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+    <div className="flex flex-wrap gap-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded-lg">
       {leagues.map((league) => (
-        <button
+        <Button
           key={league.id}
-          onClick={() => onLeagueSelect(league.id)}
+          variant={selectedLeague === league.id ? "default" : "ghost"}
+          size="sm"
+          onClick={() => handleLeagueClick(league.id)}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200",
-            selectedLeague === league.id
-              ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
-              : "bg-background dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            "transition-colors font-medium",
+            selectedLeague === league.id 
+              ? "bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400" 
+              : "hover:bg-white/75 dark:hover:bg-gray-900/75"
           )}
         >
           <span>{league.icon}</span>
           <span>{league.name}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );

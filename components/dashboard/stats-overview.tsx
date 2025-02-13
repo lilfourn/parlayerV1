@@ -1,69 +1,102 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, History } from "lucide-react";
-import { motion } from "framer-motion";
+import { DollarSign, TrendingUp, Activity, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
   title: string;
   value: string;
+  change: string;
   icon: React.ReactNode;
-  glowColor: string;
+  prefix?: string;
+  suffix?: string;
 }
 
-function StatsCard({ title, value, icon, glowColor }: StatsCardProps) {
+function StatsCard({ title, value, change, icon, prefix, suffix }: StatsCardProps) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg
-        before:absolute before:w-24 before:h-24 before:rounded-full 
-        before:blur-2xl before:opacity-20 before:-z-10 before:transition-all
-        before:duration-500 hover:before:scale-150 before:${glowColor}
-        border border-${glowColor}/20 bg-gray-900/50 dark:bg-gray-900/50`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground/80 dark:text-foreground/90">
-            {title}
-          </CardTitle>
-          <div className={`p-2 rounded-full bg-${glowColor}/10`}>
-            {icon}
+    <Card className={cn(
+      "flex-1 backdrop-blur-sm border transition-all duration-300",
+      "dark:bg-slate-900/30 dark:border-slate-800/50 dark:hover:border-slate-700/50",
+      "bg-white/50 border-slate-200 hover:border-slate-300"
+    )}>
+      <CardContent className="p-6">
+        <div className={cn(
+          "flex items-center gap-2 mb-2",
+          "dark:text-slate-400 text-slate-600"
+        )}>
+          {icon}
+          <h3 className="font-medium">{title}</h3>
+        </div>
+        
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-1">
+            {prefix && <span className="dark:text-slate-400 text-slate-600">{prefix}</span>}
+            <span className={cn(
+              "text-2xl font-mono font-semibold",
+              "dark:text-white text-slate-900"
+            )}>
+              {value}
+            </span>
+            {suffix && <span className="dark:text-slate-400 text-slate-600">{suffix}</span>}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-foreground dark:text-foreground">
-            {value}
+          
+          <div className={cn(
+            "flex items-center gap-1 text-sm",
+            change.startsWith('+') ? "text-emerald-500" : "text-red-500"
+          )}>
+            <span>{change}</span>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export function StatsOverview() {
+  const stats = [
+    {
+      title: 'Revenue',
+      value: '45,231',
+      change: '+20.1% vs last month',
+      prefix: '$',
+      icon: <DollarSign className="w-4 h-4" />
+    },
+    {
+      title: 'Active Bets',
+      value: '573',
+      change: '+201 today',
+      icon: <Activity className="w-4 h-4" />
+    },
+    {
+      title: 'Win Rate',
+      value: '62.3',
+      change: '+7% vs last week',
+      suffix: '%',
+      icon: <TrendingUp className="w-4 h-4" />
+    },
+  ];
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <StatsCard
-        title="Total Money in Play"
-        value="$1,234"
-        icon={<DollarSign className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />}
-        glowColor="emerald-500"
-      />
-      <StatsCard
-        title="Potential Earnings"
-        value="$2,345"
-        icon={<TrendingUp className="h-4 w-4 text-purple-500 dark:text-purple-400" />}
-        glowColor="purple-500"
-      />
-      <StatsCard
-        title="Total Won"
-        value="$3,456"
-        icon={<History className="h-4 w-4 text-blue-500 dark:text-blue-400" />}
-        glowColor="blue-500"
-      />
-    </div>
+    <Card className={cn(
+      "backdrop-blur-sm border transition-all duration-300",
+      "dark:bg-slate-950/30 dark:border-slate-800/50",
+      "bg-white/50 border-slate-200"
+    )}>
+      <CardContent className="p-8 space-y-6">
+        <h2 className={cn(
+          "text-xl font-semibold",
+          "dark:text-white text-slate-900"
+        )}>
+          Betting Overview
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {stats.map(stat => (
+            <StatsCard key={stat.title} {...stat} />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
